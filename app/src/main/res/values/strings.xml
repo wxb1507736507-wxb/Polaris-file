@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Polaris 文件</string>
+
+    <!-- 通知 -->
+    <string name="notif_channel_name">任务</string>
+    <string name="notif_title_running">正在处理</string>
+    <string name="notif_title_done">完成</string>
+    <string name="notif_title_failed">失败</string>
+    <string name="notif_cancel">取消</string>
+    <string name="preparing">正在读取…</string>
+
+    <!-- 底部标签 -->
+    <string name="tab_files">文件</string>
+    <string name="tab_tools">工具</string>
+    <string name="tab_mine">我的</string>
+
+    <!-- 分类 -->
+    <string name="cat_archives">压缩包</string>
+    <string name="cat_download">下载</string>
+    <string name="cat_images">图片</string>
+    <string name="cat_video">视频</string>
+    <string name="cat_audio">音频</string>
+    <string name="cat_docs">文档</string>
+    <string name="cat_apk">安装包</string>
+    <string name="cat_all">全部文件</string>
+    <string name="cat_analysis">存储分析</string>
+    <string name="cat_recent">最近文件</string>
+    <string name="recent_archives">最近压缩包</string>
+    <string name="storage_title">手机存储</string>
+    <string name="used_of">已用 %1$s / 共 %2$s</string>
+
+    <!-- 工具页 -->
+    <string name="tools_title">工具</string>
+    <string name="tools_compress_title">文件夹压缩</string>
+    <string name="tools_compress_desc">选择设备上的任意文件夹，直接压缩为对应格式并保存到 Download。</string>
+    <string name="compress_zip">压缩为 ZIP</string>
+    <string name="compress_7z">压缩为 7Z</string>
+    <string name="compress_tgz">压缩为 TAR.GZ</string>
+    <string name="tools_formats_title">支持格式</string>
+    <string name="tools_formats_body">解压：ZIP、7z（LZMA/LZMA2）、TAR、TAR.GZ、CPIO、AR 等（原生引擎）\n压缩：ZIP、7z、TAR.GZ\n文件管理：图片/视频/音频/文档（PDF·Word·表格·演示·文本）/安装包/下载/全部文件</string>
+
+    <!-- 我的页 -->
+    <string name="mine_subtitle">文件管理器 · 解压与压缩</string>
+    <string name="mine_version">版本　　v0.7</string>
+    <string name="mine_perm">文件权限　%1$s</string>
+    <string name="mine_perm_granted">已授予（所有文件）</string>
+    <string name="mine_perm_denied">未授予</string>
+    <string name="mine_free">存储空间　%1$s 可用</string>
+    <string name="mine_privacy">数据本地处理，不上传任何内容</string>
+    <string name="mine_lang">语言 / Language</string>
+
+    <!-- 权限引导 -->
+    <string name="guide_body">需要「所有文件访问权限」才能浏览和管理您设备上的文件。\n该权限仅用于本地文件管理，不会上传任何数据。</string>
+    <string name="guide_grant">授予所有文件权限</string>
+
+    <!-- 列表通用 -->
+    <string name="list_none">暂无内容</string>
+    <string name="count_items">%1$d 个</string>
+    <string name="search_badge">%1$d 个 · 搜索:%2$s</string>
+    <string name="search_hint">输入名称搜索</string>
+    <string name="kind_folder">文件夹</string>
+    <string name="extracted_badge">已解压 · 点击查看</string>
+
+    <!-- 解压询问 -->
+    <string name="ask_msg">该压缩包已解压过（%1$s）。</string>
+    <string name="ask_open">打开已解压文件</string>
+    <string name="ask_re">重新解压</string>
+    <string name="btn_cancel">取消</string>
+    <string name="toast_extracting">已开始解压：%1$s</string>
+    <string name="toast_compressing">已开始压缩：%1$s</string>
+    <string name="toast_cant_open">无法打开：%1$s</string>
+
+    <!-- 文件操作 -->
+    <string name="ops_rename">重命名</string>
+    <string name="ops_delete">删除</string>
+    <string name="ops_details">详情</string>
+    <string name="ops_copy_path">复制路径</string>
+    <string name="ops_edit">编辑</string>
+    <string name="ops_open">打开</string>
+    <string name="copied">已复制到剪贴板</string>
+    <string name="delete_confirm">确认删除「%1$s」？此操作不可恢复。</string>
+    <string name="deleted_ok">已删除</string>
+    <string name="renamed_ok">已重命名</string>
+    <string name="input_name">输入名称</string>
+    <string name="name_exists">同名条目已存在</string>
+    <string name="created_ok">已创建</string>
+    <string name="new_folder">新建文件夹</string>
+    <string name="new_file">新建文件</string>
+    <string name="details_title">文件详情</string>
+
+    <!-- 编辑器 -->
+    <string name="editor_save">保存</string>
+    <string name="editor_modified">● 已修改</string>
+    <string name="editor_saved">已保存</string>
+    <string name="editor_too_large">文件过大（超过 5MB），无法编辑</string>
+    <string name="editor_back_save">保存修改？</string>
+    <string name="editor_discard">放弃</string>
+    <string name="editor_save_btn">保存</string>
+    <string name="editor_status">%1$d 行 · %2$d 字符</string>
+
+    <!-- 解压进度弹层 -->
+    <string name="progress_title">正在解压</string>
+    <string name="progress_done">解压完成</string>
+    <string name="progress_failed">解压失败</string>
+    <string name="progress_view">查看已解压文件</string>
+    <string name="progress_cancel">取消任务</string>
+    <string name="progress_close">关闭</string>
+
+    <!-- 多选操作 -->
+    <string name="sel_title">已选 %1$d 项</string>
+    <string name="sel_all">全选</string>
+    <string name="sel_copy">复制</string>
+    <string name="sel_move">移动</string>
+    <string name="sel_delete">删除</string>
+    <string name="sel_rename">重命名</string>
+    <string name="sel_compress">压缩</string>
+    <string name="sel_share">分享</string>
+    <string name="sel_exit">退出</string>
+    <string name="pick_folder_title">选择目标文件夹</string>
+    <string name="pick_here">选择此文件夹</string>
+    <string name="pick_up">上级</string>
+    <string name="op_done">操作完成</string>
+    <string name="op_failed">操作失败</string>
+    <string name="confirm_delete_multi">确认删除所选 %1$d 项？此操作不可恢复。</string>
+    <string name="share_none">所选内容不支持分享（含文件夹）</string>
+    <string name="compress_started">已开始压缩：%1$s</string>
+    <string name="compress_done">压缩完成：%1$s</string>
+    <string name="recent_files">最近文件</string>
+</resources>
