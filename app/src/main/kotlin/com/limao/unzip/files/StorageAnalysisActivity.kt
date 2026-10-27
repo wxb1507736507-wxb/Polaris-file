@@ -128,6 +128,24 @@ class StorageAnalysisActivity : AppCompatActivity() {
     }
 
     private fun showFileMenu(f: File, size: Long) {
+        val renameAction = {
+            val input = android.widget.EditText(this).apply { setText(f.name); setSelectAllOnFocus(true) }
+            AlertDialog.Builder(this)
+                .setTitle(getString(R.string.ops_rename))
+                .setView(input)
+                .setPositiveButton("OK") { _, _ ->
+                    val newName = input.text.toString().trim()
+                    val target = f.parentFile?.let { File(it, newName) }
+                    if (newName.isNotEmpty() && target != null && !target.exists() && f.renameTo(target)) {
+                        android.widget.Toast.makeText(this, getString(R.string.renamed_ok), android.widget.Toast.LENGTH_SHORT).show()
+                        rescan()
+                    } else {
+                        android.widget.Toast.makeText(this, getString(R.string.name_exists), android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton(getString(R.string.btn_cancel), null)
+                .show()
+        }
         AlertDialog.Builder(this)
             .setTitle(f.name)
             .setMessage("${ErrorCatalog.formatBytes(size)}\n${f.absolutePath}")
@@ -144,7 +162,8 @@ class StorageAnalysisActivity : AppCompatActivity() {
                     }
                 }.start()
             }
-            .setNeutralButton(getString(R.string.ops_open)) { _, _ ->
+            .setNeutralButton(getString(R.string.ops_rename)) { _, _ -> renameAction() }
+            .setNegativeButton(getString(R.string.ops_open)) { _, _ ->
                 runCatching {
                     startActivity(
                         Intent(this, FileListActivity::class.java).apply {
@@ -154,7 +173,6 @@ class StorageAnalysisActivity : AppCompatActivity() {
                     )
                 }
             }
-            .setNegativeButton(getString(R.string.btn_cancel), null)
             .show()
     }
 

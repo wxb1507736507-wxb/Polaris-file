@@ -258,7 +258,7 @@ class MainActivity : AppCompatActivity() {
         if (item.path != null) {
             actions.add(getString(R.string.ops_rename) to {
                 val src = File(item.path)
-                val input = EditText(this).apply { setText(src.name) }
+                val input = EditText(this).apply { setText(src.name); setSelectAllOnFocus(true) }
                 AlertDialog.Builder(this)
                     .setTitle(getString(R.string.ops_rename))
                     .setView(input)
