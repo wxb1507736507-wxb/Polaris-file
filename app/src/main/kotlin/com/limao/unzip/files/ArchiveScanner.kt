@@ -35,7 +35,7 @@ object ArchiveScanner {
         for (f in files) {
             if (f.isFile && isArchive(f.name)) {
                 out.add(ArchiveItem(f, f.name, f.length(), f.lastModified()))
-            } else if (f.isDirectory && depth < maxDepth && !f.name.startsWith(".")) {
+            } else if (f.isDirectory && depth < maxDepth && !f.name.startsWith(".") && f.name != "Android") {
                 walk(f, out, depth + 1, maxDepth)
             }
         }

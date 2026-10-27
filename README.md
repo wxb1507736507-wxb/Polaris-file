@@ -133,3 +133,14 @@ app/       Android 应用
 - 目录浏览无多选批量操作（后续版本）；工具页压缩仍用 SAF 树选择器选源目录；
 - native 引擎 `Completed.bytesInput = -1`；tar.gz 类流式格式 probe 需全扫条目头（journal 需准确条目数）；
 - MIUI/ColorOS 后台广播管控对调试接收器有延迟投递现象（正式链路走 WorkManager 不受影响）。
+
+## 获取与构建
+
+- 仓库：https://github.com/wxb1507736507-wxb/Polaris-file
+- Release APK：https://github.com/wxb1507736507-wxb/Polaris-file/releases （v0.9，3.2MB）
+- 第三方 native 源码不入库，构建前下载并解压到 `app/src/main/cpp/vendor/`：
+  - libarchive 3.7.7 → `vendor/libarchive`（github.com/libarchive/libarchive/releases）
+  - xz 5.6.4 → `vendor/xz`（github.com/tubaani-project/xz/releases，目录名 zstd 同理见下）
+  - bzip2 1.0.8 → `vendor/bzip2`（sourceware.org/pub/bzip2）
+  - zstd 1.5.6 → `vendor/zstd`（github.com/facebook/zstd/releases）
+- `./gradlew :app:assembleRelease`（需 Android SDK/NDK 27+）；`./gradlew :engine:test` 无 SDK 可跑

@@ -1,5 +1,7 @@
 package com.limao.unzip
 
+import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -11,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.ListView
@@ -34,7 +37,6 @@ import java.io.File
 class MainActivity : AppCompatActivity() {
 
     private var recentItems: List<RecentItem> = emptyList()
-    private var recentAdapter: RecentAdapter? = null
 
     private data class RecentItem(
         val name: String, val path: String?, val uri: android.net.Uri?,
@@ -149,11 +151,14 @@ class MainActivity : AppCompatActivity() {
         tabViews.forEachIndexed { i, tv -> tv.setTextColor(if (i == index) 0xFF1296DB.toInt() else 0xFF999999.toInt()) }
     }
 
-    /** 文件页 */
+    /** 文件页：整页滚动（存储卡+宫格+最近文件一起滑，QQ浏览器式丝滑）。 */
     private fun buildFilesPage(): View {
-        val page = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val page = androidx.core.widget.NestedScrollView(this).apply {
             setBackgroundColor(0xFFF5F6F8.toInt())
+            isFillViewport = true
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
         }
         val bar = LinearLayout(this).apply {
             setBackgroundColor(0xFFFFFFFF.toInt())
@@ -171,21 +176,131 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
-        page.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        page.addView(buildStorageCard())
-        page.addView(buildCategoryGrid())
-        page.addView(TextView(this).apply {
+        content.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        content.addView(buildStorageCard())
+        content.addView(buildCategoryGrid())
+        content.addView(TextView(this).apply {
             text = getString(R.string.recent_files)
             textSize = 15f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setPadding(28, 24, 28, 8)
         })
-        val list = ListView(this).apply { divider = null }
-        val ra = RecentAdapter()
-        list.adapter = ra
-        recentAdapter = ra
-        page.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        recentContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        content.addView(recentContainer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        page.addView(content, android.view.ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         return page
+    }
+
+    private var recentContainer: LinearLayout? = null
+
+    /** 最近文件行（点击打开/进入，长按操作菜单）。 */
+    private fun buildRecentRow(item: RecentItem): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(0xFFFFFFFF.toInt())
+            setPadding(28, 20, 28, 20)
+            isHapticFeedbackEnabled = false
+        }
+        row.addView(TextView(this).apply {
+            text = if (item.isExtractedDir) "📂" else "📦"
+            textSize = 22f; gravity = Gravity.CENTER
+            setBackgroundResource(R.drawable.archive_icon_bg)
+            layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
+        })
+        val mid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        mid.addView(TextView(this).apply {
+            text = item.name; textSize = 14f; maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+        })
+        mid.addView(TextView(this).apply {
+            text = when {
+                item.isExtractedDir -> getString(R.string.extracted_badge).substringBefore(" ·")
+                item.size > 0 -> ErrorCatalog.formatBytes(item.size)
+                else -> ""
+            }
+            textSize = 12f; setTextColor(0xFF999999.toInt())
+        })
+        row.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = 20 })
+        row.setOnClickListener { openRecent(item) }
+        row.setOnLongClickListener { showRecentOps(item); true }
+        return row
+    }
+
+    private fun openRecent(item: RecentItem) {
+        when {
+            item.isExtractedDir -> startActivity(
+                Intent(this, FileListActivity::class.java).apply {
+                    putExtra(FileListActivity.EXTRA_MODE, "browser")
+                    putExtra(FileListActivity.EXTRA_PATH, item.path)
+                },
+            )
+            item.uri != null -> runCatching {
+                startActivity(
+                    Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(item.uri, contentResolver.getType(item.uri))
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    },
+                )
+            }
+            else -> startActivity(
+                Intent(this, FileListActivity::class.java).apply {
+                    putExtra(FileListActivity.EXTRA_MODE, "archives")
+                },
+            )
+        }
+    }
+
+    /** 最近文件长按菜单：打开/重命名/删除/详情/复制路径。 */
+    private fun showRecentOps(item: RecentItem) {
+        val actions = ArrayList<Pair<String, () -> Unit>>()
+        actions.add(getString(R.string.ops_open) to { openRecent(item) })
+        if (item.path != null) {
+            actions.add(getString(R.string.ops_rename) to {
+                val src = File(item.path)
+                val input = EditText(this).apply { setText(src.name) }
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.ops_rename))
+                    .setView(input)
+                    .setPositiveButton("OK") { _, _ ->
+                        val newName = input.text.toString().trim()
+                        val target = src.parentFile?.let { File(it, newName) }
+                        if (newName.isNotEmpty() && target != null && !target.exists() && src.renameTo(target)) {
+                            if (item.isExtractedDir) ExtractHistory.updateDst(this, src.absolutePath, target.absolutePath)
+                            toast(getString(R.string.renamed_ok))
+                            refreshRecent()
+                        } else toast(getString(R.string.name_exists))
+                    }
+                    .setNegativeButton(getString(R.string.btn_cancel), null)
+                    .show()
+            })
+            actions.add(getString(R.string.ops_delete) to {
+                AlertDialog.Builder(this)
+                    .setMessage(getString(R.string.delete_confirm, item.name))
+                    .setPositiveButton(getString(R.string.ops_delete)) { _, _ ->
+                        Thread {
+                            val f = File(item.path)
+                            val ok = if (f.isDirectory) f.deleteRecursively() else f.delete()
+                            runOnUiThread {
+                                toast(getString(if (ok) R.string.deleted_ok else R.string.op_failed))
+                                if (ok) refreshRecent()
+                            }
+                        }.start()
+                    }
+                    .setNegativeButton(getString(R.string.btn_cancel), null)
+                    .show()
+            })
+            actions.add(getString(R.string.ops_copy_path) to {
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("path", item.path))
+                toast(getString(R.string.copied))
+            })
+        }
+        AlertDialog.Builder(this)
+            .setTitle(item.name)
+            .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
+            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .show()
     }
 
     /** 我的页 */
@@ -409,68 +524,27 @@ class MainActivity : AppCompatActivity() {
                 .take(4)
             runOnUiThread {
                 recentItems = top
-                recentAdapter?.notifyDataSetChanged()
+                renderRecent()
             }
         }.start()
     }
 
-    private inner class RecentAdapter : BaseAdapter() {
-        override fun getCount() = recentItems.size
-        override fun getItem(position: Int) = recentItems[position]
-        override fun getItemId(position: Int) = position.toLong()
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-            val item = recentItems[position]
-            val row = LinearLayout(this@MainActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setBackgroundColor(0xFFFFFFFF.toInt())
-                setPadding(28, 20, 28, 20)
-            }
-            row.addView(TextView(this@MainActivity).apply {
-                text = if (item.isExtractedDir) "📂" else "📦"
-                textSize = 22f; gravity = Gravity.CENTER
-                setBackgroundResource(R.drawable.archive_icon_bg)
-                layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
+    private fun renderRecent() {
+        val container = recentContainer ?: return
+        container.removeAllViews()
+        if (recentItems.isEmpty()) {
+            container.addView(TextView(this).apply {
+                text = getString(R.string.list_none)
+                textSize = 13f; setTextColor(0xFF999999.toInt())
+                setPadding(28, 16, 28, 16)
             })
-            val mid = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
-            mid.addView(TextView(this@MainActivity).apply {
-                text = item.name; textSize = 14f; maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
-            })
-            mid.addView(TextView(this@MainActivity).apply {
-                text = when {
-                    item.isExtractedDir -> getString(R.string.extracted_badge).substringBefore(" ·")
-                    item.size > 0 -> ErrorCatalog.formatBytes(item.size)
-                    else -> ""
-                }
-                textSize = 12f; setTextColor(0xFF999999.toInt())
-            })
-            row.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = 20 })
-            row.setOnClickListener {
-                when {
-                    item.isExtractedDir -> startActivity(
-                        Intent(this@MainActivity, FileListActivity::class.java).apply {
-                            putExtra(FileListActivity.EXTRA_MODE, "browser")
-                            putExtra(FileListActivity.EXTRA_PATH, item.path)
-                        },
-                    )
-                    item.uri != null -> runCatching {
-                        startActivity(
-                            Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(item.uri, contentResolver.getType(item.uri))
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            },
-                        )
-                    }
-                    else -> startActivity(
-                        Intent(this@MainActivity, FileListActivity::class.java).apply {
-                            putExtra(FileListActivity.EXTRA_MODE, "archives")
-                        },
-                    )
-                }
-            }
-            return row
+            return
         }
+        recentItems.forEach { container.addView(buildRecentRow(it)) }
+    }
+
+    private fun toast(msg: String) {
+        android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()

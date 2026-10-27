@@ -31,6 +31,23 @@ object ExtractHistory {
         return Record(dst, rec.optLong("time"))
     }
 
+    /** 重命名/移动解压目录后同步历史记录。 */
+    fun updateDst(context: Context, oldDst: String, newDst: String) {
+        val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val all = runCatching { JSONObject(sp.getString("map", "{}")) }.getOrNull() ?: return
+        var changed = false
+        val keys = all.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            val rec = all.optJSONObject(k) ?: continue
+            if (rec.optString("dst") == oldDst) {
+                rec.put("dst", newDst)
+                changed = true
+            }
+        }
+        if (changed) sp.edit().putString("map", all.toString()).apply()
+    }
+
     /** 全部有效记录（目标目录仍存在），按时间倒序。 */
     fun all(context: Context): List<Triple<String, String, Long>> {
         val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
