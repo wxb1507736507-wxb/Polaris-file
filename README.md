@@ -144,3 +144,8 @@ app/       Android 应用
   - bzip2 1.0.8 → `vendor/bzip2`（sourceware.org/pub/bzip2）
   - zstd 1.5.6 → `vendor/zstd`（github.com/facebook/zstd/releases）
 - `./gradlew :app:assembleRelease`（需 Android SDK/NDK 27+）；`./gradlew :engine:test` 无 SDK 可跑
+
+## 更新日志
+
+- v0.9.1：文件页整页丝滑滚动（NestedScrollView）；最近文件长按操作（打开/重命名/删除/复制路径）；最近文件过滤系统目录行
+- v0.9：存储分析 treemap、万能阅读器（编码自适应）、图片/视频封面缩略图、加密 ZIP 密码解压、bzip2/zstd 解压支持
