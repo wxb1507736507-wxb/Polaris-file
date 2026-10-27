@@ -116,7 +116,7 @@ object FileItems {
             resolver.query(
                 MediaStore.Files.getContentUri("external"),
                 proj,
-                "${MediaStore.MediaColumns.RELATIVE_PATH} NOT LIKE 'Android/%'",
+                "(_data NOT LIKE '%/Android/%' AND _data NOT LIKE 'Android/%' AND _mime_type != 'vnd.android.document/directory')",
                 null,
                 "${MediaStore.MediaColumns.DATE_MODIFIED} DESC",
             )?.use { c ->
