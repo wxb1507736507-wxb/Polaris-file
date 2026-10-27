@@ -1,0 +1,129 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"vendor/zstd/build/cmake/programs/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 45,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 52,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 53,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 54,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 75,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "bin",
+			"paths" : 
+			[
+				"D:/360/task/limao-unzip/app/build/intermediates/cxx/RelWithDebInfo/z5t636i3/obj/x86_64/zstd"
+			],
+			"targetId" : "zstd::@be8078016c569d14888a",
+			"targetIndex" : 15,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "bin",
+			"paths" : 
+			[
+				"D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/x86_64/vendor/zstd/build/cmake/programs/zstdcat"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "bin",
+			"paths" : 
+			[
+				"D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/x86_64/vendor/zstd/build/cmake/programs/unzstd"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Unspecified",
+			"destination" : "bin",
+			"paths" : 
+			[
+				"vendor/zstd/build/cmake/../../programs/zstdgrep"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 5,
+			"component" : "Unspecified",
+			"destination" : "bin",
+			"paths" : 
+			[
+				"vendor/zstd/build/cmake/../../programs/zstdless"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "Unspecified",
+			"destination" : "share/man/man1",
+			"paths" : 
+			[
+				"D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/x86_64/vendor/zstd/build/cmake/programs/zstd.1",
+				"D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/x86_64/vendor/zstd/build/cmake/programs/zstdcat.1",
+				"D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/x86_64/vendor/zstd/build/cmake/programs/unzstd.1",
+				"D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/x86_64/vendor/zstd/build/cmake/programs/zstdgrep.1",
+				"D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/x86_64/vendor/zstd/build/cmake/programs/zstdless.1"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "vendor/zstd/build/cmake/programs",
+		"source" : "vendor/zstd/build/cmake/programs"
+	}
+}

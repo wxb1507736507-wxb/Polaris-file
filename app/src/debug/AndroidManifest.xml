@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- debug 构建专属：真机自测入口（release 不含此组件） -->
+    <application>
+        <receiver
+            android:name=".selftest.SelfTestReceiver"
+            android:exported="true" />
+    </application>
+</manifest>

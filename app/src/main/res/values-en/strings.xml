@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Polaris File</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_name">Tasks</string>
+    <string name="notif_title_running">Working</string>
+    <string name="notif_title_done">Done</string>
+    <string name="notif_title_failed">Failed</string>
+    <string name="notif_cancel">Cancel</string>
+    <string name="preparing">Reading…</string>
+
+    <!-- Bottom tabs -->
+    <string name="tab_files">Files</string>
+    <string name="tab_tools">Tools</string>
+    <string name="tab_mine">Me</string>
+
+    <!-- Categories -->
+    <string name="cat_archives">Archives</string>
+    <string name="cat_download">Downloads</string>
+    <string name="cat_images">Images</string>
+    <string name="cat_video">Videos</string>
+    <string name="cat_audio">Audio</string>
+    <string name="cat_docs">Docs</string>
+    <string name="cat_apk">APKs</string>
+    <string name="cat_all">All files</string>
+    <string name="cat_analysis">Storage</string>
+    <string name="cat_recent">Recent</string>
+    <string name="recent_archives">Recent archives</string>
+    <string name="storage_title">Phone storage</string>
+    <string name="used_of">Used %1$s of %2$s</string>
+
+    <!-- Tools page -->
+    <string name="tools_title">Tools</string>
+    <string name="tools_compress_title">Folder compression</string>
+    <string name="tools_compress_desc">Pick any folder on the device, compress it directly and save to Downloads.</string>
+    <string name="compress_zip">Compress ZIP</string>
+    <string name="compress_7z">Compress 7Z</string>
+    <string name="compress_tgz">Compress TAR.GZ</string>
+    <string name="tools_formats_title">Supported formats</string>
+    <string name="tools_formats_body">Extract: ZIP, 7z (LZMA/LZMA2), TAR, TAR.GZ, CPIO, AR and more (native engine)\nCompress: ZIP, 7z, TAR.GZ\nManage: images/videos/audio/docs (PDF·Word·Sheets·Slides·Text)/APKs/downloads/all files</string>
+
+    <!-- Mine page -->
+    <string name="mine_subtitle">File manager · extract &amp; compress</string>
+    <string name="mine_version">Version  v0.7</string>
+    <string name="mine_perm">File permission  %1$s</string>
+    <string name="mine_perm_granted">Granted (all files)</string>
+    <string name="mine_perm_denied">Not granted</string>
+    <string name="mine_free">Storage  %1$s free</string>
+    <string name="mine_privacy">All data is processed locally. Nothing is uploaded.</string>
+    <string name="mine_lang">语言 / Language</string>
+
+    <!-- Permission guide -->
+    <string name="guide_body">「All files access」 is required to browse and manage files on this device.\nUsed for local file management only. Nothing is uploaded.</string>
+    <string name="guide_grant">Grant all-files access</string>
+
+    <!-- List common -->
+    <string name="list_none">Nothing here</string>
+    <string name="count_items">%1$d items</string>
+    <string name="search_badge">%1$d items · search: %2$s</string>
+    <string name="search_hint">Search by name</string>
+    <string name="kind_folder">Folder</string>
+    <string name="extracted_badge">Extracted · tap to view</string>
+
+    <!-- Extract ask -->
+    <string name="ask_msg">This archive was extracted on %1$s.</string>
+    <string name="ask_open">Open extracted files</string>
+    <string name="ask_re">Extract again</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="toast_extracting">Extraction started: %1$s</string>
+    <string name="toast_compressing">Compression started: %1$s</string>
+    <string name="toast_cant_open">Cannot open: %1$s</string>
+
+    <!-- File operations -->
+    <string name="ops_rename">Rename</string>
+    <string name="ops_delete">Delete</string>
+    <string name="ops_details">Details</string>
+    <string name="ops_copy_path">Copy path</string>
+    <string name="ops_edit">Edit</string>
+    <string name="ops_open">Open</string>
+    <string name="copied">Copied to clipboard</string>
+    <string name="delete_confirm">Delete "%1$s"? This cannot be undone.</string>
+    <string name="deleted_ok">Deleted</string>
+    <string name="renamed_ok">Renamed</string>
+    <string name="input_name">Enter name</string>
+    <string name="name_exists">An item with this name exists</string>
+    <string name="created_ok">Created</string>
+    <string name="new_folder">New folder</string>
+    <string name="new_file">New file</string>
+    <string name="details_title">Details</string>
+
+    <!-- Editor -->
+    <string name="editor_save">Save</string>
+    <string name="editor_modified">● modified</string>
+    <string name="editor_saved">Saved</string>
+    <string name="editor_too_large">File too large (&gt;5MB) to edit</string>
+    <string name="editor_back_save">Save changes?</string>
+    <string name="editor_discard">Discard</string>
+    <string name="editor_save_btn">Save</string>
+    <string name="editor_status">%1$d lines · %2$d chars</string>
+
+    <!-- Extraction progress -->
+    <string name="progress_title">Extracting</string>
+    <string name="progress_done">Extraction complete</string>
+    <string name="progress_failed">Extraction failed</string>
+    <string name="progress_view">View extracted files</string>
+    <string name="progress_cancel">Cancel task</string>
+    <string name="progress_close">Close</string>
+
+    <!-- Multi-select -->
+    <string name="sel_title">%1$d selected</string>
+    <string name="sel_all">All</string>
+    <string name="sel_copy">Copy</string>
+    <string name="sel_move">Move</string>
+    <string name="sel_delete">Delete</string>
+    <string name="sel_rename">Rename</string>
+    <string name="sel_compress">Compress</string>
+    <string name="sel_share">Share</string>
+    <string name="sel_exit">Exit</string>
+    <string name="pick_folder_title">Choose destination folder</string>
+    <string name="pick_here">Choose this folder</string>
+    <string name="pick_up">Up</string>
+    <string name="op_done">Done</string>
+    <string name="op_failed">Operation failed</string>
+    <string name="confirm_delete_multi">Delete %1$d selected item(s)? This cannot be undone.</string>
+    <string name="share_none">Nothing shareable (folders selected)</string>
+    <string name="compress_started">Compression started: %1$s</string>
+    <string name="compress_done">Compression done: %1$s</string>
+    <string name="recent_files">Recent files</string>
+</resources>

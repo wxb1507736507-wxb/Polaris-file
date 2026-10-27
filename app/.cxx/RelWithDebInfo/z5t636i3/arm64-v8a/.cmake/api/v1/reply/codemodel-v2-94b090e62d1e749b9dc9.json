@@ -1,0 +1,576 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						6
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-RelWithDebInfo-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						12
+					]
+				},
+				{
+					"build" : "vendor/xz",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-vendor.xz-RelWithDebInfo-98302f2aed1f5bbdde45.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.14"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "vendor/xz",
+					"targetIndexes" : 
+					[
+						3,
+						4,
+						7,
+						8,
+						13,
+						14
+					]
+				},
+				{
+					"build" : "vendor/bzip2",
+					"jsonFile" : "directory-vendor.bzip2-RelWithDebInfo-d4784ac8c73884608918.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.22.1"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "vendor/bzip2",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "vendor/zstd/build/cmake",
+					"childIndexes" : 
+					[
+						4,
+						5
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-vendor.zstd.build.cmake-RelWithDebInfo-9c9a0168186108dd4116.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 3,
+					"source" : "vendor/zstd/build/cmake",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "vendor/zstd/build/cmake/lib",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-vendor.zstd.build.cmake.lib-RelWithDebInfo-1380f8290f363e0a4365.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 4,
+					"source" : "vendor/zstd/build/cmake/lib",
+					"targetIndexes" : 
+					[
+						5,
+						6,
+						9
+					]
+				},
+				{
+					"build" : "vendor/zstd/build/cmake/programs",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-vendor.zstd.build.cmake.programs-RelWithDebInfo-bb9c5646d05770800170.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 5,
+					"source" : "vendor/zstd/build/cmake/programs",
+					"targetIndexes" : 
+					[
+						10,
+						11,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21
+					]
+				},
+				{
+					"build" : "vendor/libarchive",
+					"childIndexes" : 
+					[
+						7,
+						9,
+						11,
+						13,
+						15
+					],
+					"jsonFile" : "directory-vendor.libarchive-RelWithDebInfo-c2252407f0834eb15681.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive"
+				},
+				{
+					"build" : "vendor/libarchive/libarchive",
+					"childIndexes" : 
+					[
+						8
+					],
+					"jsonFile" : "directory-vendor.libarchive.libarchive-RelWithDebInfo-e27ae22da765d2338a2f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/libarchive",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "vendor/libarchive/libarchive/test",
+					"jsonFile" : "directory-vendor.libarchive.libarchive.test-RelWithDebInfo-db910a7020c19347351e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 7,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/libarchive/test"
+				},
+				{
+					"build" : "vendor/libarchive/cat",
+					"childIndexes" : 
+					[
+						10
+					],
+					"jsonFile" : "directory-vendor.libarchive.cat-RelWithDebInfo-49726d9bddda374e50b9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/cat"
+				},
+				{
+					"build" : "vendor/libarchive/cat/test",
+					"jsonFile" : "directory-vendor.libarchive.cat.test-RelWithDebInfo-5e441ca326125951c803.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 9,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/cat/test"
+				},
+				{
+					"build" : "vendor/libarchive/tar",
+					"childIndexes" : 
+					[
+						12
+					],
+					"jsonFile" : "directory-vendor.libarchive.tar-RelWithDebInfo-7eff1a38631d94b255f3.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/tar"
+				},
+				{
+					"build" : "vendor/libarchive/tar/test",
+					"jsonFile" : "directory-vendor.libarchive.tar.test-RelWithDebInfo-812f690db8c1522d4d0f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 11,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/tar/test"
+				},
+				{
+					"build" : "vendor/libarchive/cpio",
+					"childIndexes" : 
+					[
+						14
+					],
+					"jsonFile" : "directory-vendor.libarchive.cpio-RelWithDebInfo-d8477c943a52d4061806.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/cpio"
+				},
+				{
+					"build" : "vendor/libarchive/cpio/test",
+					"jsonFile" : "directory-vendor.libarchive.cpio.test-RelWithDebInfo-b414f10746fbf374a01a.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 13,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/cpio/test"
+				},
+				{
+					"build" : "vendor/libarchive/unzip",
+					"childIndexes" : 
+					[
+						16
+					],
+					"jsonFile" : "directory-vendor.libarchive.unzip-RelWithDebInfo-6e135df43eab487cda62.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/unzip"
+				},
+				{
+					"build" : "vendor/libarchive/unzip/test",
+					"jsonFile" : "directory-vendor.libarchive.unzip.test-RelWithDebInfo-9ab5d5f9ed6284546fd9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 15,
+					"projectIndex" : 6,
+					"source" : "vendor/libarchive/unzip/test"
+				}
+			],
+			"name" : "RelWithDebInfo",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						6
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "xe",
+					"targetIndexes" : 
+					[
+						12
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "xz",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						4,
+						7,
+						8,
+						13,
+						14
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "bz2",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						4,
+						5
+					],
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "zstd",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "libzstd",
+					"parentIndex" : 3,
+					"targetIndexes" : 
+					[
+						5,
+						6,
+						9
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "programs",
+					"parentIndex" : 3,
+					"targetIndexes" : 
+					[
+						10,
+						11,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16
+					],
+					"name" : "libarchive",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 7,
+					"id" : "archive_static::@a7f0d214d5e97fb8e748",
+					"jsonFile" : "target-archive_static-RelWithDebInfo-3f863f51f5eb9058a01a.json",
+					"name" : "archive_static",
+					"projectIndex" : 6
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "bz2::@7d79c6c5f71edbe39ef4",
+					"jsonFile" : "target-bz2-RelWithDebInfo-9b07846a1f56f7472a13.json",
+					"name" : "bz2",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "clean-all::@994ae2076e19f5007bb3",
+					"jsonFile" : "target-clean-all-RelWithDebInfo-4618be5ecccd97a628fb.json",
+					"name" : "clean-all",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "libgnu::@a0bb76928172ff4ad854",
+					"jsonFile" : "target-libgnu-RelWithDebInfo-a25f8f3e879be581349f.json",
+					"name" : "libgnu",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "liblzma::@a0bb76928172ff4ad854",
+					"jsonFile" : "target-liblzma-RelWithDebInfo-9f8c55c3effcdeeb2566.json",
+					"name" : "liblzma",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "libzstd_shared::@9d78cc456a4f341a90ca",
+					"jsonFile" : "target-libzstd_shared-RelWithDebInfo-52f122551286ea317a02.json",
+					"name" : "libzstd_shared",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "libzstd_static::@9d78cc456a4f341a90ca",
+					"jsonFile" : "target-libzstd_static-RelWithDebInfo-1371996bb2c5f7cb40a3.json",
+					"name" : "libzstd_static",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "lzmadec::@a0bb76928172ff4ad854",
+					"jsonFile" : "target-lzmadec-RelWithDebInfo-896fda7374e3749c51a4.json",
+					"name" : "lzmadec",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "lzmainfo::@a0bb76928172ff4ad854",
+					"jsonFile" : "target-lzmainfo-RelWithDebInfo-e804a623379fa5c65807.json",
+					"name" : "lzmainfo",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "uninstall::@9d78cc456a4f341a90ca",
+					"jsonFile" : "target-uninstall-RelWithDebInfo-5a689d09f3e177af7fd3.json",
+					"name" : "uninstall",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "unzstd::@be8078016c569d14888a",
+					"jsonFile" : "target-unzstd-RelWithDebInfo-3c3609c8e2d002c4701a.json",
+					"name" : "unzstd",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "unzstd.1::@be8078016c569d14888a",
+					"jsonFile" : "target-unzstd.1-RelWithDebInfo-73fea45c06efab863472.json",
+					"name" : "unzstd.1",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "xe::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-xe-RelWithDebInfo-ad659e1740b1d2194ca4.json",
+					"name" : "xe",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "xz::@a0bb76928172ff4ad854",
+					"jsonFile" : "target-xz-RelWithDebInfo-14dc9f73045eb58b8911.json",
+					"name" : "xz",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "xzdec::@a0bb76928172ff4ad854",
+					"jsonFile" : "target-xzdec-RelWithDebInfo-8dc9f3d6519cfdfcb056.json",
+					"name" : "xzdec",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "zstd::@be8078016c569d14888a",
+					"jsonFile" : "target-zstd-RelWithDebInfo-adb7fefa9cbebe3f4de9.json",
+					"name" : "zstd",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "zstd-frugal::@be8078016c569d14888a",
+					"jsonFile" : "target-zstd-frugal-RelWithDebInfo-f82a3e6329c35460e4a2.json",
+					"name" : "zstd-frugal",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "zstd.1::@be8078016c569d14888a",
+					"jsonFile" : "target-zstd.1-RelWithDebInfo-e933510cb504d6942c8d.json",
+					"name" : "zstd.1",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "zstdcat::@be8078016c569d14888a",
+					"jsonFile" : "target-zstdcat-RelWithDebInfo-655ed3f0a888587153ae.json",
+					"name" : "zstdcat",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "zstdcat.1::@be8078016c569d14888a",
+					"jsonFile" : "target-zstdcat.1-RelWithDebInfo-5b609b301edde57a509c.json",
+					"name" : "zstdcat.1",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "zstdgrep.1::@be8078016c569d14888a",
+					"jsonFile" : "target-zstdgrep.1-RelWithDebInfo-6b65c730ef3189837827.json",
+					"name" : "zstdgrep.1",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "zstdless.1::@be8078016c569d14888a",
+					"jsonFile" : "target-zstdless.1-RelWithDebInfo-631b9b9c00dd3cefb8ba.json",
+					"name" : "zstdless.1",
+					"projectIndex" : 5
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/arm64-v8a",
+		"source" : "D:/360/task/limao-unzip/app/src/main/cpp"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

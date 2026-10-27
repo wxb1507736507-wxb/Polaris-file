@@ -1,0 +1,197 @@
+{
+  "buildFiles": [
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\bzip2\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\build\\cmake\\CheckFileOffsetBits.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\build\\cmake\\CheckFuncs.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\build\\cmake\\CheckHeaderDirent.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\build\\cmake\\CheckTypeExists.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\build\\cmake\\CreatePkgConfigFile.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\cat\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\cat\\test\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\cpio\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\cpio\\test\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\libarchive\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\libarchive\\test\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\tar\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\tar\\test\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\unzip\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\libarchive\\unzip\\test\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\cmake\\tuklib_common.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\cmake\\tuklib_cpucores.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\cmake\\tuklib_integer.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\cmake\\tuklib_large_file_support.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\cmake\\tuklib_mbstr.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\cmake\\tuklib_physmem.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\cmake\\tuklib_progname.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\xz\\tests\\tests.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\CMakeModules\\AddZstdCompilationFlags.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\CMakeModules\\GetZstdLibraryVersion.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\CMakeModules\\JoinPaths.cmake",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\lib\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\lib\\cmake_uninstall.cmake.in",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\programs\\CMakeLists.txt",
+    "D:\\360\\task\\limao-unzip\\app\\src\\main\\cpp\\vendor\\zstd\\build\\cmake\\zstdConfig.cmake.in"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "C:\\Users\\w1870\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "D:\\360\\task\\limao-unzip\\app\\.cxx\\RelWithDebInfo\\z5t636i3\\arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "C:\\Users\\w1870\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "D:\\360\\task\\limao-unzip\\app\\.cxx\\RelWithDebInfo\\z5t636i3\\arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "archive_static::@a7f0d214d5e97fb8e748": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "archive_static",
+      "output": "D:\\360\\task\\limao-unzip\\app\\.cxx\\RelWithDebInfo\\z5t636i3\\arm64-v8a\\vendor\\libarchive\\libarchive\\libarchive.a"
+    },
+    "bz2::@7d79c6c5f71edbe39ef4": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "bz2",
+      "output": "D:\\360\\task\\limao-unzip\\app\\.cxx\\RelWithDebInfo\\z5t636i3\\arm64-v8a\\vendor\\bzip2\\libbz2.a"
+    },
+    "clean-all::@994ae2076e19f5007bb3": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "clean-all"
+    },
+    "libgnu::@a0bb76928172ff4ad854": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "libgnu"
+    },
+    "liblzma::@a0bb76928172ff4ad854": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "liblzma",
+      "output": "D:\\360\\task\\limao-unzip\\app\\.cxx\\RelWithDebInfo\\z5t636i3\\arm64-v8a\\vendor\\xz\\liblzma.a"
+    },
+    "libzstd_shared::@9d78cc456a4f341a90ca": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "libzstd_shared",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\libzstd.so",
+      "runtimeFiles": []
+    },
+    "libzstd_static::@9d78cc456a4f341a90ca": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "libzstd_static",
+      "output": "D:\\360\\task\\limao-unzip\\app\\.cxx\\RelWithDebInfo\\z5t636i3\\arm64-v8a\\vendor\\zstd\\build\\cmake\\lib\\libzstd.a"
+    },
+    "lzmadec::@a0bb76928172ff4ad854": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "lzmadec",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\lzmadec",
+      "runtimeFiles": []
+    },
+    "lzmainfo::@a0bb76928172ff4ad854": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "lzmainfo",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\lzmainfo",
+      "runtimeFiles": []
+    },
+    "uninstall::@9d78cc456a4f341a90ca": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "uninstall"
+    },
+    "unzstd::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "unzstd"
+    },
+    "unzstd.1::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "unzstd.1"
+    },
+    "xe::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "xe",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\libxe.so",
+      "runtimeFiles": []
+    },
+    "xz::@a0bb76928172ff4ad854": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "xz",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\xz",
+      "runtimeFiles": []
+    },
+    "xzdec::@a0bb76928172ff4ad854": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "xzdec",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\xzdec",
+      "runtimeFiles": []
+    },
+    "zstd::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zstd",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\zstd",
+      "runtimeFiles": []
+    },
+    "zstd-frugal::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zstd-frugal",
+      "output": "D:\\360\\task\\limao-unzip\\app\\build\\intermediates\\cxx\\RelWithDebInfo\\z5t636i3\\obj\\arm64-v8a\\zstd-frugal",
+      "runtimeFiles": []
+    },
+    "zstd.1::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zstd.1"
+    },
+    "zstdcat::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zstdcat"
+    },
+    "zstdcat.1::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zstdcat.1"
+    },
+    "zstdgrep.1::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zstdgrep.1"
+    },
+    "zstdless.1::@be8078016c569d14888a": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "zstdless.1"
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "C:\\Users\\w1870\\AppData\\Local\\Android\\Sdk\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe",
+      "cppCompilerExecutable": "C:\\Users\\w1870\\AppData\\Local\\Android\\Sdk\\ndk\\27.0.12077973\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe"
+    }
+  },
+  "cFileExtensions": [
+    "c"
+  ],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

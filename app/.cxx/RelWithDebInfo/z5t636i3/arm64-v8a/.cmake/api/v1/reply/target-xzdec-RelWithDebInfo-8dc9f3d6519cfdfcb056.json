@@ -1,0 +1,782 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "D:/360/task/limao-unzip/app/build/intermediates/cxx/RelWithDebInfo/z5t636i3/obj/arm64-v8a/xzdec"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"install",
+			"target_link_libraries",
+			"add_compile_options",
+			"add_compile_definitions",
+			"tuklib_add_definitions",
+			"tuklib_add_definition_if",
+			"target_compile_definitions",
+			"tuklib_integer",
+			"tuklib_use_system_extensions",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"vendor/xz/CMakeLists.txt",
+			"vendor/xz/cmake/tuklib_common.cmake",
+			"vendor/xz/cmake/tuklib_integer.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1673,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 1708,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 1690,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 408,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 251,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 586,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 606,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 319,
+				"parent" : 0
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 323,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 23,
+				"parent" : 9
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 10
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 890,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 883,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 788,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 781,
+				"parent" : 0
+			},
+			{
+				"command" : 7,
+				"file" : 0,
+				"line" : 1702,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 623,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 623,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 623,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 623,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 623,
+				"parent" : 0
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 709,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 23,
+				"parent" : 42
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 43
+			},
+			{
+				"command" : 8,
+				"file" : 0,
+				"line" : 286,
+				"parent" : 0
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 140,
+				"parent" : 45
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 23,
+				"parent" : 46
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 47
+			},
+			{
+				"command" : 5,
+				"file" : 2,
+				"line" : 40,
+				"parent" : 45
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 49
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 698,
+				"parent" : 0
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 125,
+				"parent" : 45
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 23,
+				"parent" : 52
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 53
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 278,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 34,
+				"parent" : 55
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 56
+			},
+			{
+				"command" : 10,
+				"file" : 0,
+				"line" : 1685,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -g -DNDEBUG -fPIE"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-Wextra"
+				},
+				{
+					"fragment" : "-std=gnu11"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "HAVE_CHECK_CRC32"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "HAVE_CHECK_CRC64"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "HAVE_CHECK_SHA256"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "HAVE_CLOCK_GETTIME"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "HAVE_CLOCK_MONOTONIC"
+				},
+				{
+					"backtrace" : 12,
+					"define" : "HAVE_DECODERS"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "HAVE_DECODER_ARM"
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HAVE_DECODER_ARM64"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HAVE_DECODER_ARMTHUMB"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HAVE_DECODER_DELTA"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HAVE_DECODER_IA64"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HAVE_DECODER_LZMA1"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HAVE_DECODER_LZMA2"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HAVE_DECODER_POWERPC"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "HAVE_DECODER_RISCV"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "HAVE_DECODER_SPARC"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "HAVE_DECODER_X86"
+				},
+				{
+					"backtrace" : 24,
+					"define" : "HAVE_ENCODERS"
+				},
+				{
+					"backtrace" : 25,
+					"define" : "HAVE_ENCODER_ARM"
+				},
+				{
+					"backtrace" : 26,
+					"define" : "HAVE_ENCODER_ARM64"
+				},
+				{
+					"backtrace" : 27,
+					"define" : "HAVE_ENCODER_ARMTHUMB"
+				},
+				{
+					"backtrace" : 28,
+					"define" : "HAVE_ENCODER_DELTA"
+				},
+				{
+					"backtrace" : 29,
+					"define" : "HAVE_ENCODER_IA64"
+				},
+				{
+					"backtrace" : 30,
+					"define" : "HAVE_ENCODER_LZMA1"
+				},
+				{
+					"backtrace" : 31,
+					"define" : "HAVE_ENCODER_LZMA2"
+				},
+				{
+					"backtrace" : 32,
+					"define" : "HAVE_ENCODER_POWERPC"
+				},
+				{
+					"backtrace" : 33,
+					"define" : "HAVE_ENCODER_RISCV"
+				},
+				{
+					"backtrace" : 34,
+					"define" : "HAVE_ENCODER_SPARC"
+				},
+				{
+					"backtrace" : 35,
+					"define" : "HAVE_ENCODER_X86"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "HAVE_INTTYPES_H"
+				},
+				{
+					"backtrace" : 36,
+					"define" : "HAVE_LINUX_LANDLOCK"
+				},
+				{
+					"backtrace" : 37,
+					"define" : "HAVE_MF_BT2"
+				},
+				{
+					"backtrace" : 38,
+					"define" : "HAVE_MF_BT3"
+				},
+				{
+					"backtrace" : 39,
+					"define" : "HAVE_MF_BT4"
+				},
+				{
+					"backtrace" : 40,
+					"define" : "HAVE_MF_HC3"
+				},
+				{
+					"backtrace" : 41,
+					"define" : "HAVE_MF_HC4"
+				},
+				{
+					"backtrace" : 44,
+					"define" : "HAVE_PTHREAD_CONDATTR_SETCLOCK"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "HAVE_STDBOOL_H"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "HAVE_STDINT_H"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "HAVE__BOOL"
+				},
+				{
+					"backtrace" : 48,
+					"define" : "HAVE___BUILTIN_ASSUME_ALIGNED"
+				},
+				{
+					"backtrace" : 50,
+					"define" : "HAVE___BUILTIN_BSWAPXX"
+				},
+				{
+					"backtrace" : 51,
+					"define" : "MYTHREAD_POSIX"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "PACKAGE_BUGREPORT=\"xz@tukaani.org\""
+				},
+				{
+					"backtrace" : 5,
+					"define" : "PACKAGE_NAME=\"XZ Utils\""
+				},
+				{
+					"backtrace" : 5,
+					"define" : "PACKAGE_URL=\"https://tukaani.org/xz/\""
+				},
+				{
+					"backtrace" : 54,
+					"define" : "TUKLIB_FAST_UNALIGNED_ACCESS"
+				},
+				{
+					"backtrace" : 57,
+					"define" : "_GNU_SOURCE"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 58,
+					"path" : "D:/360/task/limao-unzip/app/src/main/cpp/vendor/xz/src/common"
+				},
+				{
+					"backtrace" : 58,
+					"path" : "D:/360/task/limao-unzip/app/src/main/cpp/vendor/xz/src/liblzma/api"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "D:/360/task/limao-unzip/app/.cxx/RelWithDebInfo/z5t636i3/arm64-v8a/vendor/xz/lib"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "D:/360/task/limao-unzip/app/src/main/cpp/vendor/xz/lib"
+				}
+			],
+			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				3,
+				6,
+				8
+			],
+			"sysroot" : 
+			{
+				"path" : "C:/Users/w1870/AppData/Local/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
+			}
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "liblzma::@a0bb76928172ff4ad854"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "libgnu::@a0bb76928172ff4ad854"
+		}
+	],
+	"id" : "xzdec::@a0bb76928172ff4ad854",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 2,
+				"path" : "bin"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "C:/Program Files (x86)/xe"
+		}
+	},
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -g -DNDEBUG",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments   -Wl,--gc-sections",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "vendor\\xz\\liblzma.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-pthread",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-latomic -lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "C",
+		"sysroot" : 
+		{
+			"path" : "C:/Users/w1870/AppData/Local/Android/Sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
+		}
+	},
+	"name" : "xzdec",
+	"nameOnDisk" : "xzdec",
+	"paths" : 
+	{
+		"build" : "vendor/xz",
+		"source" : "vendor/xz"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				4,
+				5,
+				7
+			]
+		},
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				3,
+				6,
+				8
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "vendor/xz/src/common/sysdefs.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "vendor/xz/src/common/tuklib_common.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "vendor/xz/src/common/tuklib_config.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "vendor/xz/src/common/tuklib_exit.c",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "vendor/xz/src/common/tuklib_exit.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "vendor/xz/src/common/tuklib_gettext.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "vendor/xz/src/common/tuklib_progname.c",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "vendor/xz/src/common/tuklib_progname.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "vendor/xz/src/xzdec/xzdec.c",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "EXECUTABLE"
+}
