@@ -74,6 +74,7 @@ object FileItems {
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.DATE_MODIFIED,
             MediaStore.MediaColumns.MIME_TYPE,
+            MediaStore.MediaColumns.DATA,
         )
         val selection = mimes?.let { "${MediaStore.MediaColumns.MIME_TYPE} IN (${it.joinToString(",") { "?" }})" }
         val out = ArrayList<Entry>(128)
@@ -85,10 +86,12 @@ object FileItems {
                     val size = c.getLong(2)
                     val time = c.getLong(3) * 1000
                     val uri = ContentUris.withAppendedId(collection, id)
+                    val dataPath = runCatching { c.getString(5) }.getOrNull()
                     val icon = if (docStyle) docIcon(docGroup(name)) else iconFor(name)
                     val label = if (docStyle) DOC_GROUPS[docGroup(name) + 1].let { d -> if (d == "其他") "文档" else d } else typeLabel(name)
                     val thumb = thumbPrefix?.let { "$it:$id" }
-                    out.add(Entry(name, null, uri, size, time, false, icon, label, thumb))
+                    // 真实路径让所有 MediaStore 条目都支持重命名/删除/复制路径（全文件权限）
+                    out.add(Entry(name, dataPath, uri, size, time, false, icon, label, thumb))
                 }
             }
         }
@@ -110,6 +113,7 @@ object FileItems {
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.DATE_MODIFIED,
             MediaStore.MediaColumns.MIME_TYPE,
+            MediaStore.MediaColumns.DATA,
         )
         val out = ArrayList<Entry>(limit)
         runCatching {
@@ -124,7 +128,8 @@ object FileItems {
                     val id = c.getLong(0)
                     val name = c.getString(1) ?: continue
                     val uri = ContentUris.withAppendedId(MediaStore.Files.getContentUri("external"), id)
-                    out.add(Entry(name, null, uri, c.getLong(2), c.getLong(3) * 1000, false, iconFor(name), typeLabel(name)))
+                    val dataPath = runCatching { c.getString(5) }.getOrNull()
+                    out.add(Entry(name, dataPath, uri, c.getLong(2), c.getLong(3) * 1000, false, iconFor(name), typeLabel(name)))
                 }
             }
         }

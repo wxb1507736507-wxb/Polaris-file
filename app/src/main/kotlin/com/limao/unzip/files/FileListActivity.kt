@@ -496,7 +496,7 @@ class FileListActivity : AppCompatActivity() {
     }
 
     private fun askName(title: String, prefill: String, onOk: (String) -> Unit) {
-        val input = EditText(this).apply { hint = getString(R.string.input_name); setText(prefill) }
+        val input = EditText(this).apply { hint = getString(R.string.input_name); setText(prefill); setSelectAllOnFocus(true) }
         AlertDialog.Builder(this)
             .setTitle(title)
             .setView(input)
