@@ -420,7 +420,7 @@ class FileListActivity : AppCompatActivity() {
                 "audio" -> FileItems.audio(this)
                 "docs" -> FileItems.docs(this)
                 "apk" -> FileItems.apks(this)
-                "recent" -> FileItems.recentAll(this, 200)
+                "recent" -> FileItems.recentFs(limit = 300)
                 "browser" -> FileItems.listDir(File(browserPath!!), archiveOnly = false)
                 else -> emptyList()
             }

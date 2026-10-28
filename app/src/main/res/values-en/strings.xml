@@ -26,6 +26,15 @@
     <string name="cat_all">All files</string>
     <string name="cat_analysis">Storage</string>
     <string name="cat_recent">Recent</string>
+    <string name="cat_webdav">WebDAV</string>
+    <string name="webdav_url">Server URL (e.g. https://dav.jianguoyun.com/dav/)</string>
+    <string name="webdav_user">Account</string>
+    <string name="webdav_pass">Password / app password</string>
+    <string name="webdav_connect">Connect</string>
+    <string name="webdav_list_error">Connect failed. Check URL/account/network</string>
+    <string name="webdav_download_started">Downloading to Download/PolarisWebDav: </string>
+    <string name="webdav_download_done">Downloaded: </string>
+    <string name="webdav_enter_path">Path to browse (empty = root)</string>
     <string name="recent_archives">Recent archives</string>
     <string name="storage_title">Phone storage</string>
     <string name="used_of">Used %1$s of %2$s</string>

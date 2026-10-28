@@ -29,7 +29,10 @@ import com.limao.unzip.engine.error.ErrorCatalog
 import com.limao.unzip.files.ArchiveScanner
 import com.limao.unzip.files.ExtractHistory
 import com.limao.unzip.files.FileListActivity
+
+import com.limao.unzip.files.TextEditorActivity
 import com.limao.unzip.files.StorageAnalysisActivity
+import com.limao.unzip.webdav.WebDavActivity
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -202,9 +205,15 @@ class MainActivity : AppCompatActivity() {
             setPadding(28, 20, 28, 20)
             isHapticFeedbackEnabled = false
         }
-        row.addView(TextView(this).apply {
-            text = if (item.isExtractedDir) "📂" else "📦"
-            textSize = 22f; gravity = Gravity.CENTER
+        row.addView(android.widget.ImageView(this).apply {
+            setImageResource(
+                when {
+                    item.isExtractedDir -> R.drawable.ic_folder
+                    com.limao.unzip.files.ArchiveScanner.isArchive(item.name) -> R.drawable.ic_archive
+                    else -> com.limao.unzip.files.FileItems.iconResFor(item.name)
+                },
+            )
+            setColorFilter(0xFF1296DB.toInt())
             setBackgroundResource(R.drawable.archive_icon_bg)
             layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
         })
@@ -242,6 +251,24 @@ class MainActivity : AppCompatActivity() {
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     },
                 )
+            }
+            item.path != null && com.limao.unzip.files.ArchiveScanner.isArchive(item.name) -> startActivity(
+                Intent(this, FileListActivity::class.java).apply {
+                    putExtra(FileListActivity.EXTRA_MODE, "archives")
+                },
+            )
+            item.path != null && java.io.File(item.path).isFile -> {
+                if (com.limao.unzip.files.FileItems.isTextName(item.name)) {
+                    startActivity(Intent(this, TextEditorActivity::class.java).putExtra(TextEditorActivity.EXTRA_PATH, item.path))
+                } else runCatching {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", java.io.File(item.path))
+                    startActivity(
+                        Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, contentResolver.getType(uri) ?: "*/*")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        },
+                    )
+                }
             }
             else -> startActivity(
                 Intent(this, FileListActivity::class.java).apply {
@@ -423,27 +450,30 @@ class MainActivity : AppCompatActivity() {
             setPadding(12, 24, 12, 24)
         }
         val cats = listOf(
-            "📦" to getString(R.string.cat_archives) to "archives",
-            "📥" to getString(R.string.cat_download) to "download",
-            "🖼" to getString(R.string.cat_images) to "images",
-            "🎬" to getString(R.string.cat_video) to "video",
-            "🎵" to getString(R.string.cat_audio) to "audio",
-            "📄" to getString(R.string.cat_docs) to "docs",
-            "🤖" to getString(R.string.cat_apk) to "apk",
-            "🗂" to getString(R.string.cat_all) to "browser",
-            "💾" to getString(R.string.cat_analysis) to "storage",
-            "🔍" to getString(R.string.cat_recent) to "recent",
+            R.drawable.ic_archive to getString(R.string.cat_archives) to "archives",
+            R.drawable.ic_get_app to getString(R.string.cat_download) to "download",
+            R.drawable.ic_image to getString(R.string.cat_images) to "images",
+            R.drawable.ic_videocam to getString(R.string.cat_video) to "video",
+            R.drawable.ic_audiotrack to getString(R.string.cat_audio) to "audio",
+            R.drawable.ic_description to getString(R.string.cat_docs) to "docs",
+            R.drawable.ic_android_apk to getString(R.string.cat_apk) to "apk",
+            R.drawable.ic_folder_open to getString(R.string.cat_all) to "browser",
+            R.drawable.ic_memory to getString(R.string.cat_analysis) to "storage",
+            R.drawable.ic_history to getString(R.string.cat_recent) to "recent",
+            R.drawable.ic_cloud to getString(R.string.cat_webdav) to "webdav",
         )
         for ((pair, key) in cats) {
-            val (emoji, name) = pair
+            val (iconRes, name) = pair
             val cell = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
                 setPadding(0, 20, 0, 12)
             }
-            cell.addView(TextView(this).apply {
-                text = emoji; textSize = 26f; gravity = Gravity.CENTER
+            cell.addView(android.widget.ImageView(this).apply {
+                setImageResource(iconRes)
+                setColorFilter(0xFF1296DB.toInt())
                 setBackgroundResource(R.drawable.archive_icon_bg)
+                setPadding(dp(14), dp(14), dp(14), dp(14))
                 layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)).apply { gravity = Gravity.CENTER }
             })
             cell.addView(TextView(this).apply {
@@ -485,6 +515,7 @@ class MainActivity : AppCompatActivity() {
     private fun onCategory(key: String) {
         when (key) {
             "storage" -> startActivity(Intent(this, StorageAnalysisActivity::class.java))
+            "webdav" -> startActivity(Intent(this, WebDavActivity::class.java))
             "recent" -> startActivity(Intent(this, FileListActivity::class.java).apply {
                 putExtra(FileListActivity.EXTRA_MODE, "recent")
             })
@@ -509,13 +540,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             runCatching {
-                ArchiveScanner.scanRoots().take(3).forEach { a ->
-                    merged.add(RecentItem(a.name, a.file.absolutePath, null, a.size, a.lastModified, false))
-                }
-            }
-            runCatching {
-                com.limao.unzip.files.FileItems.recentAll(this, 10).forEach { e ->
-                    if (merged.size < 12) merged.add(RecentItem(e.name, e.path, e.uri, e.size, e.time, false))
+                com.limao.unzip.files.FileItems.recentFs(6).forEach { e ->
+                    if (merged.size < 12) merged.add(RecentItem(e.name, e.path, null, e.size, e.time, false))
                 }
             }
             val seen = HashSet<String>()
