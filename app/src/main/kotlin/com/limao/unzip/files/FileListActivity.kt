@@ -612,7 +612,7 @@ class FileListActivity : AppCompatActivity() {
             isHapticFeedbackEnabled = false
             fitsSystemWindows = false
         }
-        row.addView(buildIcon(e, dp(50), 24f, sel))
+        row.addView(buildIcon(e, dp(50), 24f, sel, inSelect))
         val mid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         mid.addView(TextView(this).apply {
             text = e.name; textSize = 15f
@@ -629,13 +629,14 @@ class FileListActivity : AppCompatActivity() {
     }
 
     /** 图标区：有缩略图键时异步加载封面，否则显示 emoji。 */
-    private fun buildIcon(e: Entry, sizePx: Int, emojiSize: Float, sel: Boolean = false): View {
+    /** 图标区：封面常驻（多选选中也不消失），多选模式叠加右上角勾选角标。 */
+    private fun buildIcon(e: Entry, sizePx: Int, emojiSize: Float, sel: Boolean = false, selecting: Boolean = false): View {
         val wrap = android.widget.FrameLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
             setBackgroundResource(R.drawable.archive_icon_bg)
         }
         val emoji = TextView(this).apply {
-            text = if (sel) "☑" else if (e.thumbKey != null) "" else e.icon
+            text = e.icon
             textSize = emojiSize; gravity = Gravity.CENTER
             layoutParams = android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
@@ -650,7 +651,17 @@ class FileListActivity : AppCompatActivity() {
             )
         }
         wrap.addView(img)
-        if (e.thumbKey != null && !sel) Thumbs.loadInto(this, e.thumbKey, img)
+        if (e.thumbKey != null) Thumbs.loadInto(this, e.thumbKey, e.path, img)
+        if (selecting && e.path != null) {
+            val badge = TextView(this).apply {
+                text = if (sel) "✓" else ""
+                textSize = 12f; gravity = Gravity.CENTER; setTextColor(0xFFFFFFFF.toInt())
+                setBackgroundResource(if (sel) R.drawable.badge_selected else R.drawable.badge_normal)
+                visibility = View.VISIBLE
+                layoutParams = android.widget.FrameLayout.LayoutParams(dp(18), dp(18), Gravity.BOTTOM or Gravity.END)
+            }
+            wrap.addView(badge)
+        }
         return wrap
     }
 
@@ -665,7 +676,7 @@ class FileListActivity : AppCompatActivity() {
             setPadding(dp(14), dp(12), dp(14), dp(12))
             isHapticFeedbackEnabled = false
         }
-        cell.addView(buildIcon(e, dp(36), 20f, sel))
+        cell.addView(buildIcon(e, dp(36), 20f, sel, inSelect))
         val mid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         mid.addView(TextView(this).apply {
             text = e.name; textSize = 13f

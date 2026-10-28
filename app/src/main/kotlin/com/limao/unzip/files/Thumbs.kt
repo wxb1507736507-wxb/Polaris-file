@@ -2,6 +2,7 @@ package com.limao.unzip.files
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
@@ -10,8 +11,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
- * 缩略图加载（LruCache + 后台解码）。
- * key: "img:<id>"（MediaStore 图片缩略图）/ "vid:<id>"（视频首帧）。
+ * 缩略图加载（LruCache + 后台采样解码）。
+ * 直接解码源文件/视频帧——不依赖系统缩略图表（Android 10+ 上 getThumbnail 不可靠）。
  * imageView.tag = key 防复用错位。
  */
 object Thumbs {
@@ -22,15 +23,15 @@ object Thumbs {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Bitmap>?): Boolean = size > 192
     }
 
-    fun loadInto(context: Context, key: String, imageView: ImageView) {
+    fun loadInto(context: Context, key: String, path: String?, imageView: ImageView) {
+        imageView.tag = key // 校验基准：先设置再走缓存/解码，命中路径也生效
         val cached = synchronized(cache) { cache[key] }
         if (cached != null) {
             apply(imageView, key, cached)
             return
         }
-        imageView.tag = key
         executor.execute {
-            val bmp = decode(context, key) ?: return@execute
+            val bmp = decode(context, key, path) ?: return@execute
             synchronized(cache) { cache[key] = bmp }
             imageView.post { apply(imageView, key, bmp) }
         }
@@ -43,13 +44,10 @@ object Thumbs {
         }
     }
 
-    private fun decode(context: Context, key: String): Bitmap? = runCatching {
+    private fun decode(context: Context, key: String, path: String?): Bitmap? = runCatching {
         val (kind, idStr) = key.split(":", limit = 2)
-        val id = idStr.toLong()
         when (kind) {
-            "img" -> MediaStore.Images.Thumbnails.getThumbnail(
-                context.contentResolver, id, MediaStore.Images.Thumbnails.MINI_KIND, null,
-            )
+            "img" -> decodeSampled(path, 256)
             "vid" -> {
                 val uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI.buildUpon().appendPath(idStr).build()
                 MediaMetadataRetriever().use { r ->
@@ -60,6 +58,19 @@ object Thumbs {
             else -> null
         }
     }.getOrNull()
+
+    /** 按目标边长采样解码，避免大图 OOM。 */
+    private fun decodeSampled(path: String?, target: Int): Bitmap? {
+        if (path == null) return null
+        val f = java.io.File(path)
+        if (!f.exists()) return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(path, bounds)
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= target && bounds.outHeight / (sample * 2) >= target) sample *= 2
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        return BitmapFactory.decodeFile(path, opts)
+    }
 
     private inline fun <T> MediaMetadataRetriever.use(block: (MediaMetadataRetriever) -> T): T =
         try { block(this) } finally { runCatching { release() } }
