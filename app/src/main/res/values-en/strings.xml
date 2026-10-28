@@ -136,4 +136,9 @@
     <string name="compress_started">Compression started: %1$s</string>
     <string name="compress_done">Compression done: %1$s</string>
     <string name="recent_files">Recent files</string>
+    <string name="webdav_upload_btn">Upload</string>
+    <string name="webdav_delete_confirm">Delete remote file?</string>
+    <string name="webdav_pick_local">Pick a local file to upload</string>
+    <string name="webdav_upload_done">Uploaded: </string>
+    <string name="webdav_no_local">No local files to upload yet</string>
 </resources>

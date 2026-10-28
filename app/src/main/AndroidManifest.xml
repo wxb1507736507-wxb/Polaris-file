@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- 前台解压服务（API 34+ 要求声明类型） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -15,6 +17,7 @@
         android:theme="@style/Theme.Limao"
         android:allowBackup="false"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:largeHeap="true">
 
         <activity
