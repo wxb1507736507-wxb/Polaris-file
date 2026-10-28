@@ -102,6 +102,23 @@ class TextEditorActivity : AppCompatActivity() {
             updateStatus()
             return
         }
+
+        // Office（docx/xlsx/pptx）：提取文本只读预览
+        if (com.limao.unzip.files.OfficeText.supported(file.name)) {
+            readOnly = true
+            edit.isEnabled = false
+            Thread {
+                val (text, full) = com.limao.unzip.files.OfficeText.extract(file)
+                runOnUiThread {
+                    val truncNote = if (full) "" else "\n\n…（内容过长，已截断）"
+                    edit.setText(text + truncNote)
+                    loaded = true
+                    dirty = false
+                    updateStatus()
+                }
+            }.start()
+            return
+        }
         // 万能阅读：≤5MB 可编辑；5–30MB 只读全量查看；>30MB 提示
         if (file.length() > MAX_READ_BYTES) {
             Toast.makeText(this, getString(R.string.editor_too_large), Toast.LENGTH_LONG).show()
