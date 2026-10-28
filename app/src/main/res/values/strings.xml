@@ -136,4 +136,9 @@
     <string name="compress_started">已开始压缩：%1$s</string>
     <string name="compress_done">压缩完成：%1$s</string>
     <string name="recent_files">最近文件</string>
+    <string name="webdav_upload_btn">上传文件</string>
+    <string name="webdav_delete_confirm">确认删除远程文件？</string>
+    <string name="webdav_pick_local">选择要上传的本地文件</string>
+    <string name="webdav_upload_done">已上传：</string>
+    <string name="webdav_no_local">暂无可上传的本地文件（先从网盘下载或解压）</string>
 </resources>
