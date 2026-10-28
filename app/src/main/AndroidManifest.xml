@@ -61,6 +61,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".files.ImagePreviewActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".files.ProgressActivity"
             android:exported="false"
             android:theme="@style/Theme.Progress" />
