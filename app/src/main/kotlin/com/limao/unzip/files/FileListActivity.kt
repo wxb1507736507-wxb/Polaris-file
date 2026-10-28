@@ -564,6 +564,8 @@ class FileListActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun isImageName(name: String): Boolean = com.limao.unzip.files.FileItems.iconResFor(name) == com.limao.unzip.R.drawable.ic_image
+
     private fun isTextName(name: String): Boolean {
         val lower = name.lowercase()
         return listOf(".txt", ".log", ".md", ".xml", ".json", ".csv", ".html", ".htm", ".py", ".java", ".kt", ".c", ".cpp", ".h", ".sh", ".properties", ".ini", ".conf", ".yaml", ".yml", ".js", ".ts", ".css")
@@ -731,6 +733,11 @@ class FileListActivity : AppCompatActivity() {
             e.name.endsWith(".pdf", true) && e.path != null -> startActivity(
                 Intent(this, com.limao.unzip.files.PdfReaderActivity::class.java)
                     .putExtra(com.limao.unzip.files.PdfReaderActivity.EXTRA_PATH, e.path),
+            )
+            // 图片内建查看
+            e.path != null && isImageName(e.name) -> startActivity(
+                Intent(this, com.limao.unzip.files.ImagePreviewActivity::class.java)
+                    .putExtra(com.limao.unzip.files.ImagePreviewActivity.EXTRA_PATH, e.path),
             )
             // Office 文本提取预览（docx/xlsx/pptx 只读；老格式跳系统）
             com.limao.unzip.files.OfficeText.supported(e.name) && e.path != null -> openEditor(File(e.path!!))
