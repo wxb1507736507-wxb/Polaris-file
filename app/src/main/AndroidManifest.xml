@@ -14,7 +14,8 @@
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Limao"
         android:allowBackup="false"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:largeHeap="true">
 
         <activity
             android:name=".MainActivity"
@@ -46,6 +47,14 @@
 
         <activity
             android:name=".files.StorageAnalysisActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".webdav.WebDavActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".files.PdfReaderActivity"
             android:exported="false" />
 
         <activity

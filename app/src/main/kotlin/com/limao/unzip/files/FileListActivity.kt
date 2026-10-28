@@ -167,6 +167,12 @@ class FileListActivity : AppCompatActivity() {
         reload()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // 返回页面时重扫（MediaStore/文件系统变化即时可见）
+        if (this::adapter.isInitialized) reload()
+    }
+
     private var opsBar: LinearLayout? = null
     private var compressRow: LinearLayout? = null
     private val selection = LinkedHashMap<String, Entry>()
@@ -420,7 +426,7 @@ class FileListActivity : AppCompatActivity() {
                 "audio" -> FileItems.audio(this)
                 "docs" -> FileItems.docs(this)
                 "apk" -> FileItems.apks(this)
-                "recent" -> FileItems.recentAll(this, 200)
+                "recent" -> FileItems.recentFs(limit = 300)
                 "browser" -> FileItems.listDir(File(browserPath!!), archiveOnly = false)
                 else -> emptyList()
             }
@@ -710,6 +716,13 @@ class FileListActivity : AppCompatActivity() {
                 }
             }
 
+            // PDF 内建阅读器
+            e.name.endsWith(".pdf", true) && e.path != null -> startActivity(
+                Intent(this, com.limao.unzip.files.PdfReaderActivity::class.java)
+                    .putExtra(com.limao.unzip.files.PdfReaderActivity.EXTRA_PATH, e.path),
+            )
+            // Office 文本提取预览（docx/xlsx/pptx 只读；老格式跳系统）
+            com.limao.unzip.files.OfficeText.supported(e.name) && e.path != null -> openEditor(File(e.path!!))
             isTextName(e.name) && e.path != null -> openEditor(File(e.path))
 
             e.uri != null -> runCatching {

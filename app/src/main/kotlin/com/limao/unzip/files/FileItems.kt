@@ -1,6 +1,7 @@
 package com.limao.unzip.files
 
 import android.content.ContentUris
+import com.limao.unzip.R
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
@@ -168,6 +169,47 @@ object FileItems {
 
     fun downloads(archiveOnly: Boolean): List<Entry> =
         listDir(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), archiveOnly)
+
+    /** 最近文件（文件系统直扫：全设备 /sdcard 递归，按修改时间倒序——保证完整不漏）。 */
+    fun recentFs(limit: Int = 200, maxDepth: Int = 3): List<Entry> {
+        val out = ArrayList<Entry>(limit)
+        val seen = HashSet<String>()
+        fun walk(dir: File, depth: Int) {
+            if (depth > maxDepth || out.size >= limit) return
+            val files = runCatching { dir.listFiles() }.getOrNull() ?: return
+            for (f in files) {
+                if (out.size >= limit) return
+                val n = f.name
+                if (n.startsWith(".")) continue
+                if (f.isDirectory) {
+                    if (n != "Android") walk(f, depth + 1)
+                } else if (seen.add(f.absolutePath)) {
+                    out.add(Entry(n, f.absolutePath, null, f.length(), f.lastModified(), false, iconFor(n), typeLabel(n)))
+                }
+            }
+        }
+        walk(Environment.getExternalStorageDirectory(), 0)
+        return out.sortedByDescending { it.time }
+    }
+
+    fun isTextName(name: String): Boolean {
+        val lower = name.lowercase()
+        return listOf(".txt", ".log", ".md", ".xml", ".json", ".csv", ".html", ".htm", ".py", ".java", ".kt", ".c", ".cpp", ".h", ".sh", ".properties", ".ini", ".conf", ".yaml", ".yml", ".js", ".ts", ".css")
+            .any { lower.endsWith(it) }
+    }
+
+    /** Material 矢量图标映射（m3e 官方 path）。 */
+    fun iconResFor(name: String): Int = when {
+        ArchiveScanner.isArchive(name) -> R.drawable.ic_archive
+        name.endsWith(".apk", true) -> R.drawable.ic_android_apk
+        name.endsWith(".jpg", true) || name.endsWith(".jpeg", true) || name.endsWith(".png", true) ||
+            name.endsWith(".gif", true) || name.endsWith(".webp", true) || name.endsWith(".heic", true) -> R.drawable.ic_image
+        name.endsWith(".mp4", true) || name.endsWith(".mkv", true) || name.endsWith(".avi", true) ||
+            name.endsWith(".mov", true) || name.endsWith(".3gp", true) -> R.drawable.ic_videocam
+        name.endsWith(".mp3", true) || name.endsWith(".flac", true) || name.endsWith(".m4a", true) ||
+            name.endsWith(".wav", true) || name.endsWith(".ogg", true) -> R.drawable.ic_audiotrack
+        else -> R.drawable.ic_description
+    }
 
     private fun typeLabel(name: String): String {
         val dot = name.lastIndexOf('.')

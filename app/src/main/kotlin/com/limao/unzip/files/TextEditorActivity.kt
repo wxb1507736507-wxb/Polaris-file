@@ -102,13 +102,31 @@ class TextEditorActivity : AppCompatActivity() {
             updateStatus()
             return
         }
-        if (file.length() > MAX_EDIT_BYTES) {
+
+        // Office（docx/xlsx/pptx）：提取文本只读预览
+        if (com.limao.unzip.files.OfficeText.supported(file.name)) {
             readOnly = true
             edit.isEnabled = false
-            edit.setText(getString(R.string.editor_too_large))
-            loaded = true
-            status.text = "${file.length()} B"
+            Thread {
+                val (text, full) = com.limao.unzip.files.OfficeText.extract(file)
+                runOnUiThread {
+                    val truncNote = if (full) "" else "\n\n…（内容过长，已截断）"
+                    edit.setText(text + truncNote)
+                    loaded = true
+                    dirty = false
+                    updateStatus()
+                }
+            }.start()
             return
+        }
+        // 万能阅读：≤5MB 可编辑；5–30MB 只读全量查看；>30MB 提示
+        if (file.length() > MAX_READ_BYTES) {
+            Toast.makeText(this, getString(R.string.editor_too_large), Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+        if (file.length() > MAX_EDIT_BYTES) {
+            readOnly = true
         }
         Thread {
             val bytes = runCatching { file.readBytes() }.getOrElse { ByteArray(0) }
@@ -185,5 +203,6 @@ class TextEditorActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PATH = "path"
         private const val MAX_EDIT_BYTES = 5L * 1024 * 1024
+        private const val MAX_READ_BYTES = 30L * 1024 * 1024
     }
 }
