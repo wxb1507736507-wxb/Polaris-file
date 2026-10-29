@@ -137,6 +137,57 @@ object FileItems {
         return out
     }
 
+    /** 网盘下载目录聚合：扫描百度网盘/夸克/迅雷/UC/QQ/微信等所有网盘应用的下载目录，按 mtime 倒序。 */
+    fun netdiskDownloads(limit: Int = 500): List<Entry> {
+        val out = ArrayList<Entry>(limit)
+        val seen = HashSet<String>()
+        val root = Environment.getExternalStorageDirectory()
+        val dirs = listOf(
+            Environment.DIRECTORY_DOWNLOADS,
+            "BaiduNetdisk",
+            "Quark/Download",
+            "Quark",
+            "UCDownloads",
+            "Thunder",
+            "Download/Thunder",
+            "ALYDownload",
+            "Tencent/QQfile_recv",
+            "Tencent/MicroMsg/Download",
+            "Documents",
+        )
+        for (rel in dirs) {
+            val d = File(root, rel)
+            val files = runCatching { d.listFiles() }.getOrNull() ?: continue
+            for (f in files) {
+                if (out.size >= limit) break
+                if (!f.isFile || f.name.startsWith(".") || !seen.add(f.absolutePath)) continue
+                out.add(Entry(f.name, f.absolutePath, null, f.length(), f.lastModified(), false, iconFor(f.name), typeLabel(f.name)))
+            }
+            // 一级子目录也扫（网盘常有子文件夹）
+            for (sub in files) {
+                if (out.size >= limit) break
+                if (sub.isDirectory && !sub.name.startsWith(".")) {
+                    val subFiles = runCatching { sub.listFiles() }.getOrNull() ?: continue
+                    for (f in subFiles) {
+                        if (out.size >= limit) break
+                        if (!f.isFile || f.name.startsWith(".")) continue
+                        val rel2 = "${rel}/${sub.name}/${f.name}"
+                        val safe = rel2
+                        if (!seen.add(f.absolutePath)) continue
+                        out.add(Entry(f.name, f.absolutePath, null, f.length(), f.lastModified(), false, iconFor(f.name), typeLabel(f.name)))
+                    }
+                }
+            }
+        }
+        return out.sortedByDescending { it.time }
+    }
+
+    /** 网盘下载目录是否存在。 */
+    fun hasNetdiskDirs(): Boolean {
+        val root = Environment.getExternalStorageDirectory()
+        return listOf("BaiduNetdisk", "Quark", "UCDownloads", "Thunder").any { File(root, it).isDirectory }
+    }
+
     fun counts(ctx: Context): Map<String, Int> {
         fun countOf(collection: Uri, mimes: List<String>?): Int {
             val resolver = ctx.contentResolver

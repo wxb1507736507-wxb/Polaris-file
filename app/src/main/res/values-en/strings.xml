@@ -17,7 +17,7 @@
 
     <!-- Categories -->
     <string name="cat_archives">Archives</string>
-    <string name="cat_download">Downloads</string>
+    <string name="cat_download">Netdisk Files</string>
     <string name="cat_images">Images</string>
     <string name="cat_video">Videos</string>
     <string name="cat_audio">Audio</string>

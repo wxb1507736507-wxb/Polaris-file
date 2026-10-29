@@ -17,7 +17,7 @@
 
     <!-- 分类 -->
     <string name="cat_archives">压缩包</string>
-    <string name="cat_download">下载</string>
+    <string name="cat_download">网盘下载</string>
     <string name="cat_images">图片</string>
     <string name="cat_video">视频</string>
     <string name="cat_audio">音频</string>
