@@ -12,6 +12,7 @@ object XeBridge {
     const val FMT_ZIP = 1
     const val FMT_SEVEN_Z = 2
     const val FMT_TAR = 3
+    const val FMT_RAR = 8
     const val FMT_GZ = 11
     const val FMT_RAW = 12
 

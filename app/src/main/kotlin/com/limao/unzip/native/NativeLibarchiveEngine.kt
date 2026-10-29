@@ -171,6 +171,7 @@ class NativeLibarchiveEngine : ExtractionEngine {
             XeBridge.FMT_ZIP -> ArchiveFormat.ZIP
             XeBridge.FMT_SEVEN_Z -> ArchiveFormat.SEVEN_Z
             XeBridge.FMT_TAR -> ArchiveFormat.TAR
+            XeBridge.FMT_RAR -> ArchiveFormat.RAR
             XeBridge.FMT_GZ -> ArchiveFormat.GZ
             else -> ArchiveFormat.UNKNOWN
         }
