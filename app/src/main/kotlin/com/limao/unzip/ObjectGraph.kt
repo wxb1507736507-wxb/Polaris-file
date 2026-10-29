@@ -27,6 +27,9 @@ object ObjectGraph {
     /** 当前解压任务的目标目录（ProgressActivity"查看已解压文件"用）。 */
     @Volatile var activeDstPath: String? = null
 
+    /** 解压预检缓存：path → probe 结果（消除点击压缩包后的重复全量扫描，此为卡顿根因）。 */
+    @Volatile var cachedProbe: Pair<String, com.limao.unzip.engine.api.ArchiveInfo>? = null
+
     fun sink(treeUri: Uri): DocumentTreeSink =
         DocumentTreeSink(appContext, treeUri)
 

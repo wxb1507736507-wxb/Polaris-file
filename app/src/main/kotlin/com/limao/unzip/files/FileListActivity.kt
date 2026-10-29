@@ -775,6 +775,18 @@ class FileListActivity : AppCompatActivity() {
                     runCatching { input.close() }
                 }
             }
+            // 预检同时缓存 probe 结果（含 entryCount/encrypted），供 Worker 与路由直接复用
+            runCatching {
+                val pfd2 = android.os.ParcelFileDescriptor.open(src, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                val input2 = com.limao.unzip.io.AndroidFdInput(pfd2.detachFd())
+                try {
+                    val engine = com.limao.unzip.native.NativeLibarchiveEngine()
+                    val info = engine.probe(input2)
+                    com.limao.unzip.ObjectGraph.cachedProbe = src.absolutePath to info
+                } finally {
+                    runCatching { input2.close() }
+                }
+            }
             runOnUiThread {
                 if (encrypted && password == null) {
                     askPassword(src, dst)
