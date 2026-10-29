@@ -43,6 +43,9 @@ class AndroidFileSink(
     private val preserveTimestamps: Boolean = true,
 ) : OutputSink, FdCapableSink {
 
+    /** 解压根目录（unrar 路径等需要目录语义的引擎使用）。 */
+    val rootDir: File get() = root
+
     init {
         root.mkdirs()
     }

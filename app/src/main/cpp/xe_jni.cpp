@@ -146,13 +146,18 @@ jint mapFormat(struct archive* a) {
 }
 
 // 打开一个 archive 读取会话（dup fd、从头读）。返回 dup 出的 fd，*-1 失败。
-int openArchive(int srcFd, struct archive** outAr) {
+// passphrase 必须在 open 之前注册（archive 状态机要求 'new' 态），加密 zip/rar5 由此解密。
+int openArchive(int srcFd, struct archive** outAr, const char* passphrase) {
     int fd = dup(srcFd);
     if (fd < 0) { setErr("dup failed"); return -1; }
     if (lseek(fd, 0, SEEK_SET) != 0) { setErr("lseek failed"); close(fd); return -1; }
     struct archive* a = archive_read_new();
     archive_read_support_filter_all(a);
     archive_read_support_format_all(a);
+    if (passphrase != nullptr && passphrase[0] != 0) {
+        archive_read_add_passphrase(a, passphrase);
+    }
+
     if (archive_read_open_fd(a, fd, 64 * 1024) != ARCHIVE_OK) {
         setErr(archive_error_string(a) ? archive_error_string(a) : "open failed");
         archive_read_free(a);
@@ -168,9 +173,8 @@ int openArchive(int srcFd, struct archive** outAr) {
 extern "C" JNIEXPORT jint JNICALL
 Java_com_limao_unzip_native_XeBridge_nativeProbe(JNIEnv* env, jobject, jint srcFd) {
     struct archive* a = nullptr;
-    int fd = openArchive(srcFd, &a);
-    if (fd < 0) { LOGE("probe: openArchive failed: %s", g_lastError); return FMT_UNKNOWN; }
-    struct archive_entry* entry = archive_entry_new();
+    int fd = openArchive(srcFd, &a, nullptr);
+    if (fd < 0) { LOGE("probe: openArchive failed: %s", g_lastError); return FMT_UNKNOWN; }    struct archive_entry* entry = archive_entry_new();
     jint result = FMT_UNKNOWN;
     int r = archive_read_next_header2(a, entry);
     if (r == ARCHIVE_OK || r == ARCHIVE_WARN) {
@@ -203,7 +207,7 @@ Java_com_limao_unzip_native_XeBridge_nativeScan(JNIEnv* env, jobject, jint srcFd
     if (onEntry == nullptr) { setErr("scan sink method missing"); return env->NewLongArray(0); }
 
     struct archive* a = nullptr;
-    int fd = openArchive(srcFd, &a);
+    int fd = openArchive(srcFd, &a, nullptr);
     if (fd < 0) return env->NewLongArray(0);
     struct archive_entry* entry = archive_entry_new();
     int64_t index = 0;
@@ -227,7 +231,8 @@ Java_com_limao_unzip_native_XeBridge_nativeScan(JNIEnv* env, jobject, jint srcFd
                             (jlong) (archive_entry_mtime(entry) * 1000LL));
         env->DeleteLocalRef(jpath);
         if (env->ExceptionCheck()) { fail = true; break; }
-        if (archive_entry_is_encrypted(entry)) ret[2] = 1;
+        // RAR3/RAR5 只置 is_data_encrypted（3.6+ 新旗标），必须与旧 is_encrypted 合并判断
+        if (archive_entry_is_encrypted(entry) || archive_entry_is_data_encrypted(entry)) ret[2] = 1;
         int64_t sz = archive_entry_size_is_set(entry) ? archive_entry_size(entry) : 0;
         if (sz > 0) ret[1] += sz;
         ret[0]++;
@@ -261,16 +266,11 @@ Java_com_limao_unzip_native_XeBridge_nativeExtract(JNIEnv* env, jobject, jint sr
         return (skip[w] & (1LL << (idx % 64))) != 0;
     };
 
+    // 密码：加密 zip（ZipCrypto/AES-256）/ 加密 rar5 由 libarchive 解密；必须在 open 前注册
+    const char* pass = jpassphrase != nullptr ? env->GetStringUTFChars(jpassphrase, nullptr) : nullptr;
     struct archive* a = nullptr;
-    int fd = openArchive(srcFd, &a);
-    // 密码：加密 zip（ZipCrypto/AES-256）由 libarchive 解密（内置 crypto fallback）
-    if (fd >= 0 && jpassphrase != nullptr) {
-        const char* pass = env->GetStringUTFChars(jpassphrase, nullptr);
-        if (pass != nullptr && pass[0] != 0) {
-            archive_read_add_passphrase(a, pass);
-        }
-        if (pass != nullptr) env->ReleaseStringUTFChars(jpassphrase, pass);
-    }
+    int fd = openArchive(srcFd, &a, pass);
+    if (pass != nullptr) env->ReleaseStringUTFChars(jpassphrase, pass);
     if (fd >= 0) {
     struct archive_entry* entry = archive_entry_new();
     int64_t index = 0;
@@ -287,7 +287,7 @@ Java_com_limao_unzip_native_XeBridge_nativeExtract(JNIEnv* env, jobject, jint sr
                 break;
             }
             // 加密条目：无密码时结构化报错（上层弹密码框重试）
-            if (archive_entry_is_encrypted(entry)) {
+            if (archive_entry_is_encrypted(entry) || archive_entry_is_data_encrypted(entry)) {
                 if (jpassphrase == nullptr) {
                     setErr("Passphrase required");
                     finalCode = XE_ERR_ENCRYPTED;
@@ -355,6 +355,7 @@ Java_com_limao_unzip_native_XeBridge_nativeExtract(JNIEnv* env, jobject, jint sr
                 if (r == ARCHIVE_EOF) break;
                 if (r == ARCHIVE_FATAL) {
                     const char* es = archive_error_string(a);
+                    LOGE("data fatal: %s", es ? es : "(null)");
                     // 密码错误/缺失（加密 zip）→ 结构化 ENCRYPTED 码供上层弹密码框
                     if (es != nullptr && (strstr(es, "Passphrase") != nullptr || strstr(es, "passphrase") != nullptr || strstr(es, "encrypted") != nullptr || strstr(es, "Encryption") != nullptr)) {
                         setErr(es);
