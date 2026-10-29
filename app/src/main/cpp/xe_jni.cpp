@@ -137,7 +137,7 @@ jint mapFormat(struct archive* a) {
     if (base == ARCHIVE_FORMAT_AR) return FMT_AR;
     if (base == ARCHIVE_FORMAT_ISO9660) return FMT_ISO;
     if (base == ARCHIVE_FORMAT_CAB) return FMT_CAB;
-    if (base == ARCHIVE_FORMAT_RAR) return FMT_RAR;
+    if (base == ARCHIVE_FORMAT_RAR || base == ARCHIVE_FORMAT_RAR_V5) return FMT_RAR;
     if (base == ARCHIVE_FORMAT_LHA) return FMT_LHA;
     if (base == ARCHIVE_FORMAT_XAR) return FMT_XAR;
     int flt = archive_filter_code(a, 0);
