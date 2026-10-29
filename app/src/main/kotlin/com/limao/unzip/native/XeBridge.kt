@@ -60,9 +60,18 @@ object XeBridge {
         if (available) nativeCompress(outFd, formatCode, level, callbacks)
         else longArrayOf(XE_ERR_FORMAT.toLong(), 0, 0, 0)
 
+    /** unrar（加密 RAR 专用）：返回 [code, entriesDone, bytesDone]。code=0 成功 1=中止 其余 ERAR_*。 */
+    fun unrarExtract(fd: Int, destDir: String, password: String?, callbacks: Any): LongArray =
+        if (available) nativeUnrarExtract(fd, destDir, password, callbacks)
+        else longArrayOf(21L, 0, 0)
+
+    fun unrarLastError(): String = if (available) nativeUnrarLastError() else ""
+
     private external fun nativeProbe(fd: Int): Int
     private external fun nativeScan(fd: Int, sink: Any): LongArray
     private external fun nativeExtract(fd: Int, callbacks: Any, skipBits: LongArray?, ignoreEntryErrors: Boolean, passphrase: String?): LongArray
     private external fun nativeCompress(outFd: Int, formatCode: Int, level: Int, callbacks: Any): LongArray
     private external fun nativeGetLastError(): String
+    private external fun nativeUnrarExtract(fd: Int, destDir: String, password: String?, callbacks: Any): LongArray
+    private external fun nativeUnrarLastError(): String
 }
