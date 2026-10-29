@@ -102,7 +102,47 @@ object FileItems {
     fun images(ctx: Context) = queryMedia(ctx, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, false, "img")
     fun videos(ctx: Context) = queryMedia(ctx, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, null, false, "vid")
     fun audio(ctx: Context) = queryMedia(ctx, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, false)
-    fun apks(ctx: Context) = queryMedia(ctx, MediaStore.Files.getContentUri("external"), listOf("application/vnd.android.package-archive"), false)
+        fun apks(ctx: Context): List<Entry> {
+        val resolver = ctx.contentResolver
+        // MediaStore APK 索引不可靠（Android 10+ 常不索引），改为文件系统扫描
+        val out = ArrayList<Entry>(32)
+        val root = Environment.getExternalStorageDirectory()
+        val dirs = listOf(
+            File(root, Environment.DIRECTORY_DOWNLOADS),
+            File(root, "BaiduNetdisk"),
+            File(root, "Quark/Download"),
+            File(root, "UCDownloads"),
+            File(root, "Thunder"),
+        )
+        for (d in dirs) {
+            val files = runCatching { d.listFiles() }.getOrNull() ?: continue
+            for (f in files) {
+                if (f.isFile && f.name.endsWith(".apk", true) && out.size < 200) {
+                    out.add(Entry(f.name, f.absolutePath, null, f.length(), f.lastModified(), false, "🤖", "APK"))
+                }
+            }
+        }
+        // MediaStore 补漏（覆盖文件系统扫描未遍历到的路径）
+        val known = out.map { it.path }.toHashSet()
+        runCatching {
+            resolver.query(
+                MediaStore.Files.getContentUri("external"),
+                arrayOf(MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED),
+                "${MediaStore.MediaColumns.MIME_TYPE} = ?",
+                arrayOf("application/vnd.android.package-archive"),
+                "${MediaStore.MediaColumns.DATE_MODIFIED} DESC",
+            )?.use { c ->
+                while (c.moveToNext() && out.size < 200) {
+                    val data = runCatching { c.getString(0) }.getOrNull()
+                    val name = c.getString(1) ?: continue
+                    if (data != null && !known.add(data)) continue
+                    out.add(Entry(name, data, null, c.getLong(2), c.getLong(3) * 1000, false, "🤖", "APK"))
+                }
+            }
+        }
+        return out.distinctBy { it.path ?: it.name }.sortedByDescending { it.time }
+    }
+
     fun docs(ctx: Context) = queryMedia(ctx, MediaStore.Files.getContentUri("external"), DOC_MIMES, true)
 
     /** 最近文件（全部类型，时间倒序；排除 Android/ 内部目录）。 */
