@@ -576,24 +576,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** 最近文件 = 设备全部类型的最近文件（MediaStore）+ 最近解压文件夹 + 最近压缩包（时间倒序）。 */
+    /** 最近文件 = 全类型最近文件（MediaStore：txt/docx/xlsx/pptx/pdf/apk/zip/rar/mp4/mp3…，时间倒序）
+     *  + 文件系统补充（MediaStore 未及时索引的文件）+ 最近解压目录，全局按时间倒序去重。 */
     private fun refreshRecent() {
         Thread {
-            val merged = ArrayList<RecentItem>(12)
+            val merged = ArrayList<RecentItem>(48)
+            runCatching {
+                com.limao.unzip.files.FileItems.recentAll(this, 60).forEach { e ->
+                    merged.add(RecentItem(e.name, e.path, e.uri, e.size, e.time, false))
+                }
+            }
+            runCatching {
+                com.limao.unzip.files.FileItems.recentFs(60).forEach { e ->
+                    merged.add(RecentItem(e.name, e.path, null, e.size, e.time, false))
+                }
+            }
             runCatching {
                 ExtractHistory.all(this).take(2).forEach { (_, dst, time) ->
                     merged.add(RecentItem(File(dst).name, dst, null, 0L, time, true))
                 }
             }
-            runCatching {
-                com.limao.unzip.files.FileItems.recentFs(6).forEach { e ->
-                    if (merged.size < 12) merged.add(RecentItem(e.name, e.path, null, e.size, e.time, false))
-                }
-            }
             val seen = HashSet<String>()
             val top = merged.sortedByDescending { it.time }
                 .filter { seen.add(it.name + ":" + (it.path ?: it.uri.toString())) }
-                .take(4)
+                .take(8)
             runOnUiThread {
                 recentItems = top
                 renderRecent()
