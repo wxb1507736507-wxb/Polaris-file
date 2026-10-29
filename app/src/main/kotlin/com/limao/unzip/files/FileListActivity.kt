@@ -413,7 +413,7 @@ class FileListActivity : AppCompatActivity() {
         listView.visibility = View.GONE
         Thread {
             val list: List<Entry> = when (mode) {
-                "archives" -> ArchiveScanner.scanRoots().map {
+                "archives" -> ArchiveScanner.scanRoots(this).map {
                     val extracted = ExtractHistory.lookup(this, it.file.absolutePath)
                     Entry(
                         it.name, it.file.absolutePath, null, it.size, it.lastModified, false, "📦",

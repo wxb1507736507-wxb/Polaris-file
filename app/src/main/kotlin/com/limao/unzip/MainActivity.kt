@@ -499,7 +499,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadCategoryCounts() {
         Thread {
             val counts = HashMap<String, Int>()
-            runCatching { counts["archives"] = ArchiveScanner.scanRoots().size }
+            runCatching { counts["archives"] = ArchiveScanner.scanRoots(this).size }
             runCatching {
                 counts["download"] = Environment
                     .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
