@@ -106,12 +106,12 @@ class TextEditorActivity : AppCompatActivity() {
         // Office（docx/xlsx/pptx）：提取文本只读预览
         if (com.limao.unzip.files.OfficeText.supported(file.name)) {
             readOnly = true
-            edit.isEnabled = false
             Thread {
                 val (text, full) = com.limao.unzip.files.OfficeText.extract(file)
                 runOnUiThread {
                     val truncNote = if (full) "" else "\n\n…（内容过长，已截断）"
                     edit.setText(text + truncNote)
+                    lockIfReadonly()
                     loaded = true
                     dirty = false
                     updateStatus()
@@ -134,11 +134,17 @@ class TextEditorActivity : AppCompatActivity() {
             charset = cs
             runOnUiThread {
                 edit.setText(text)
+                lockIfReadonly()
                 loaded = true
                 dirty = false
                 updateStatus()
             }
         }.start()
+    }
+
+    /** 只读（Office 预览/超大文本）：禁用编辑，避免用户改动后无法保存。 */
+    private fun lockIfReadonly() {
+        if (readOnly) edit.isEnabled = false
     }
 
     /** UTF-8 严格解码失败 → GBK → ISO-8859-1 兜底。 */
@@ -165,24 +171,39 @@ class TextEditorActivity : AppCompatActivity() {
         titleView.text = if (dirty) "${file.name} ${getString(R.string.editor_modified)}" else file.name
     }
 
-    private fun save() {
+    /** 保存：UI 线程取文本 → 临时文件 + rename 原子落盘（写一半失败不会损坏原文件）。
+     *  [waitMs] > 0 时阻塞等待写完（返回 true=已落盘），供返回键避免静默丢失。 */
+    private fun save(waitMs: Long = 0, onDone: (Boolean) -> Unit = {}): Boolean {
         if (readOnly) {
             Toast.makeText(this, getString(R.string.editor_too_large), Toast.LENGTH_SHORT).show()
-            return
+            return false
         }
-        Thread {
-            val ok = runCatching {
+        // 视图只能在主线程读；落盘走后台
+        val text = edit.text.toString()
+        var done: Thread? = null
+        var ok = false
+        done = Thread {
+            val result = runCatching {
                 file.parentFile?.mkdirs()
-                file.writeText(edit.text.toString(), charset)
-            }.isSuccess
+                val tmp = File(file.parentFile, file.name + ".polaris.tmp")
+                tmp.writeText(text, charset)
+                // 同目录 rename 原子替换（Linux rename 语义），失败时原文件与临时文件都保留
+                if (!tmp.renameTo(file)) throw java.io.IOException("rename failed")
+            }
             runOnUiThread {
-                Toast.makeText(this, getString(if (ok) R.string.editor_saved else R.string.toast_cant_open), Toast.LENGTH_SHORT).show()
-                if (ok) {
+                if (result.isSuccess) {
                     dirty = false
                     updateStatus()
+                    Toast.makeText(this, getString(R.string.editor_saved), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, getString(R.string.editor_save_failed), Toast.LENGTH_LONG).show()
                 }
+                onDone(result.isSuccess)
             }
-        }.start()
+            ok = result.isSuccess
+        }.apply { start() }
+        if (waitMs > 0) runCatching { done.join(waitMs) }
+        return ok
     }
 
     override fun onBackPressed() {
@@ -192,7 +213,11 @@ class TextEditorActivity : AppCompatActivity() {
         }
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.editor_back_save))
-            .setPositiveButton(getString(R.string.editor_save_btn)) { _, _ -> save(); super.onBackPressed() }
+            .setPositiveButton(getString(R.string.editor_save_btn)) { _, _ ->
+                // 等待落盘完成再离开（≤5MB 文本，10s 上限足够），避免静默丢失
+                save(waitMs = 10_000)
+                super.onBackPressed()
+            }
             .setNegativeButton(getString(R.string.editor_discard)) { _, _ -> dirty = false; super.onBackPressed() }
             .setNeutralButton(getString(R.string.btn_cancel), null)
             .show()
