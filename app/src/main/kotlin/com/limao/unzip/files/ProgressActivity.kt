@@ -1,5 +1,7 @@
 package com.limao.unzip.files
 
+import com.limao.unzip.UiTheme
+
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
@@ -56,7 +58,7 @@ class ProgressActivity : AppCompatActivity() {
         }
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(40, 36, 40, 32)
         }
         title = TextView(this).apply {
@@ -69,7 +71,7 @@ class ProgressActivity : AppCompatActivity() {
         percent = TextView(this).apply {
             text = "0%"
             textSize = 34f
-            setTextColor(0xFF1296DB.toInt())
+            setTextColor(UiTheme.accent())
             setPadding(0, 20, 0, 8)
         }
         card.addView(percent)
@@ -80,7 +82,7 @@ class ProgressActivity : AppCompatActivity() {
         card.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(12)))
         detail = TextView(this).apply {
             textSize = 13f
-            setTextColor(0xFF999999.toInt())
+            setTextColor(UiTheme.textSecondary())
             setPadding(0, 12, 0, 0)
         }
         card.addView(detail)

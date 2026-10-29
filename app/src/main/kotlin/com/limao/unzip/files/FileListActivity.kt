@@ -1,6 +1,7 @@
 package com.limao.unzip.files
 
 import android.app.AlertDialog
+import com.limao.unzip.UiTheme
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -81,12 +82,12 @@ class FileListActivity : AppCompatActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFF5F6F8.toInt())
+            setBackgroundColor(UiTheme.pageBg())
             fitsSystemWindows = true
         }
         // 顶栏：‹ 标题 计数 🔍 ＋
         val bar = LinearLayout(this).apply {
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(24, 40, 24, 40)
             gravity = Gravity.CENTER_VERTICAL
         }
@@ -100,7 +101,7 @@ class FileListActivity : AppCompatActivity() {
             maxLines = 1
         }
         countView = TextView(this).apply {
-            textSize = 13f; setTextColor(0xFF999999.toInt())
+            textSize = 13f; setTextColor(UiTheme.textSecondary())
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
@@ -126,7 +127,7 @@ class FileListActivity : AppCompatActivity() {
         loading = ProgressBar(this)
         root.addView(loading, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.CENTER })
         emptyView = TextView(this).apply {
-            text = getString(R.string.list_none); setTextColor(0xFF999999.toInt()); gravity = Gravity.CENTER
+            text = getString(R.string.list_none); setTextColor(UiTheme.textSecondary()); gravity = Gravity.CENTER
             setPadding(0, 200, 0, 0); visibility = View.GONE
         }
         listView = if (dualMode) {
@@ -183,12 +184,12 @@ class FileListActivity : AppCompatActivity() {
     private fun buildOpsBar(): LinearLayout {
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(12, 10, 12, 12)
             visibility = View.GONE
         }
         val selTitle = TextView(this).apply {
-            textSize = 13f; setTextColor(0xFF1296DB.toInt())
+            textSize = 13f; setTextColor(UiTheme.accent())
             gravity = Gravity.CENTER
             setPadding(0, 0, 0, 8)
             tag = "title"
@@ -388,7 +389,7 @@ class FileListActivity : AppCompatActivity() {
 
     private fun buildDocChips(root: LinearLayout) {
         val scroll = HorizontalScrollView(this).apply {
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             isHorizontalScrollBarEnabled = false
         }
         chipsRow = LinearLayout(this).apply { setPadding(24, 8, 24, 20) }
@@ -396,7 +397,7 @@ class FileListActivity : AppCompatActivity() {
             val chip = TextView(this).apply {
                 text = label; textSize = 13f
                 setPadding(28, 10, 28, 10)
-                setTextColor(if (i == 0) 0xFF1296DB.toInt() else 0xFF666666.toInt())
+                setTextColor(if (i == 0) UiTheme.accent() else UiTheme.textTertiary())
                 setBackgroundResource(if (i == 0) R.drawable.chip_selected else R.drawable.chip_normal)
                 setOnClickListener { selectDocGroup(i) }
                 tag = i
@@ -462,7 +463,7 @@ class FileListActivity : AppCompatActivity() {
             for (c in 0 until row.childCount) {
                 val chip = row.getChildAt(c) as TextView
                 val sel = chip.tag == i
-                chip.setTextColor(if (sel) 0xFF1296DB.toInt() else 0xFF666666.toInt())
+                chip.setTextColor(if (sel) UiTheme.accent() else UiTheme.textTertiary())
                 chip.setBackgroundResource(if (sel) R.drawable.chip_selected else R.drawable.chip_normal)
             }
         }
@@ -609,7 +610,7 @@ class FileListActivity : AppCompatActivity() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(if (sel) 0xFFE3F0FC.toInt() else 0xFFFFFFFF.toInt())
+            setBackgroundColor(if (sel) UiTheme.chipBg() else UiTheme.card())
             setPadding(28, 22, 28, 22)
             isHapticFeedbackEnabled = false
             fitsSystemWindows = false
@@ -622,7 +623,7 @@ class FileListActivity : AppCompatActivity() {
             maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
         })
         mid.addView(TextView(this).apply {
-            text = subOf(e); textSize = 12f; setTextColor(0xFF999999.toInt())
+            text = subOf(e); textSize = 12f; setTextColor(UiTheme.textSecondary())
         })
         row.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = 22 })
         row.setOnClickListener { if (inSelect && e.path != null) toggleSelect(e) else onEntry(e) }
@@ -682,7 +683,7 @@ class FileListActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundResource(R.drawable.dual_cell_bg)
-            if (sel) setBackgroundColor(0xFFE3F0FC.toInt())
+            if (sel) setBackgroundColor(UiTheme.chipBg())
             setPadding(dp(14), dp(12), dp(14), dp(12))
             isHapticFeedbackEnabled = false
         }
@@ -694,7 +695,7 @@ class FileListActivity : AppCompatActivity() {
             maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
         })
         mid.addView(TextView(this).apply {
-            text = subOf(e); textSize = 11f; setTextColor(0xFF999999.toInt()); maxLines = 1
+            text = subOf(e); textSize = 11f; setTextColor(UiTheme.textSecondary()); maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
         })
         cell.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = dp(12) })

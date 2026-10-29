@@ -58,6 +58,10 @@
     <string name="mine_free">存储空间　%1$s 可用</string>
     <string name="mine_privacy">数据本地处理，不上传任何内容</string>
     <string name="mine_lang">语言 / Language</string>
+    <string name="mine_theme">外观</string>
+    <string name="theme_light">日间模式</string>
+    <string name="theme_dark">夜间模式</string>
+    <string name="theme_system">跟随系统</string>
 
     <!-- 权限引导 -->
     <string name="guide_body">需要「所有文件访问权限」才能浏览和管理您设备上的文件。\n该权限仅用于本地文件管理，不会上传任何数据。</string>

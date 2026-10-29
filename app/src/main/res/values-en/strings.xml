@@ -58,6 +58,10 @@
     <string name="mine_free">Storage  %1$s free</string>
     <string name="mine_privacy">All data is processed locally. Nothing is uploaded.</string>
     <string name="mine_lang">语言 / Language</string>
+    <string name="mine_theme">Appearance</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Night</string>
+    <string name="theme_system">Follow system</string>
 
     <!-- Permission guide -->
     <string name="guide_body">「All files access」 is required to browse and manage files on this device.\nUsed for local file management only. Nothing is uploaded.</string>

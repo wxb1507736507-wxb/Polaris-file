@@ -65,12 +65,15 @@ class MainActivity : AppCompatActivity() {
 
     private var homeBuilt = false
 
+    /** 当前标签（0=文件 1=我的），主题切换导致 Activity 重建后保持。 */
+    private var lastTab = 0
+
     // ---------- 权限引导 ----------
     private fun showPermissionGuide() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(0xFFF5F6F8.toInt())
+            setBackgroundColor(UiTheme.pageBg())
             setPadding(48, 48, 48, 48)
             fitsSystemWindows = true
         }
@@ -87,7 +90,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(TextView(this).apply {
             text = getString(R.string.guide_body)
             textSize = 14f
-            setTextColor(0xFF666666.toInt())
+            setTextColor(UiTheme.textTertiary())
             gravity = Gravity.CENTER
             setPadding(0, 0, 0, 48)
         })
@@ -116,7 +119,7 @@ class MainActivity : AppCompatActivity() {
         homeBuilt = true
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFF5F6F8.toInt())
+            setBackgroundColor(UiTheme.pageBg())
             fitsSystemWindows = true
         }
         val content = android.widget.FrameLayout(this)
@@ -128,7 +131,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         val bottom = LinearLayout(this).apply {
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(0, 10, 0, 16)
         }
         val tabs = listOf("📁" to getString(R.string.tab_files), "👤" to getString(R.string.tab_mine))
@@ -136,7 +139,7 @@ class MainActivity : AppCompatActivity() {
             TextView(this).apply {
                 gravity = Gravity.CENTER
                 textSize = 11f
-                setTextColor(if (i == 0) 0xFF1296DB.toInt() else 0xFF999999.toInt())
+                setTextColor(if (i == 0) UiTheme.accent() else UiTheme.textSecondary())
                 text = "$icon\n$label"
                 setOnClickListener { showTab(i) }
             }
@@ -144,14 +147,15 @@ class MainActivity : AppCompatActivity() {
         tabViews.forEach { bottom.addView(it, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)) }
         root.addView(bottom, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         setContentView(root)
-        showTab(0)
+        showTab(lastTab)
         refreshRecent()
     }
 
     private fun showTab(index: Int) {
+        lastTab = index
         filesPage?.visibility = if (index == 0) View.VISIBLE else View.GONE
         minePage?.visibility = if (index == 1) View.VISIBLE else View.GONE
-        tabViews.forEachIndexed { i, tv -> tv.setTextColor(if (i == index) 0xFF1296DB.toInt() else 0xFF999999.toInt()) }
+        tabViews.forEachIndexed { i, tv -> tv.setTextColor(if (i == index) UiTheme.accent() else UiTheme.textSecondary()) }
     }
 
     /** 文件页：整页滚动（存储卡+宫格+最近文件一起滑，QQ浏览器式丝滑）。 */
@@ -159,7 +163,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildFilesPage(): View {
         val page = androidx.core.widget.NestedScrollView(this).apply {
-            setBackgroundColor(0xFFF5F6F8.toInt())
+            setBackgroundColor(UiTheme.pageBg())
             isFillViewport = true
         }
         filesScroll = page
@@ -167,7 +171,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
         }
         val bar = LinearLayout(this).apply {
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(24, 40, 24, 32)
         }
         bar.addView(TextView(this).apply {
@@ -178,7 +182,7 @@ class MainActivity : AppCompatActivity() {
         bar.addView(TextView(this).apply {
             text = getString(R.string.app_name)
             textSize = 12f
-            setTextColor(0xFF1296DB.toInt())
+            setTextColor(UiTheme.accent())
             gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
@@ -204,7 +208,7 @@ class MainActivity : AppCompatActivity() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(28, 20, 28, 20)
             isHapticFeedbackEnabled = false
         }
@@ -227,7 +231,7 @@ class MainActivity : AppCompatActivity() {
                         else -> com.limao.unzip.files.FileItems.iconResFor(item.name)
                     },
                 )
-                setColorFilter(0xFF1296DB.toInt())
+                setColorFilter(UiTheme.accent())
                 setBackgroundResource(R.drawable.archive_icon_bg)
                 layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
             })
@@ -243,7 +247,7 @@ class MainActivity : AppCompatActivity() {
                 item.size > 0 -> ErrorCatalog.formatBytes(item.size)
                 else -> ""
             }
-            textSize = 12f; setTextColor(0xFF999999.toInt())
+            textSize = 12f; setTextColor(UiTheme.textSecondary())
         })
         row.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = 20 })
         row.setOnClickListener { openRecent(item) }
@@ -350,7 +354,7 @@ class MainActivity : AppCompatActivity() {
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setBackgroundColor(0xFFF5F6F8.toInt())
+            setBackgroundColor(UiTheme.pageBg())
             setPadding(24, 60, 24, 24)
         }
         page.addView(TextView(this).apply {
@@ -365,13 +369,13 @@ class MainActivity : AppCompatActivity() {
         page.addView(TextView(this).apply {
             text = getString(R.string.mine_subtitle)
             textSize = 13f
-            setTextColor(0xFF999999.toInt())
+            setTextColor(UiTheme.textSecondary())
             gravity = Gravity.CENTER
             setPadding(0, 6, 0, 24)
         })
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(28, 24, 28, 24)
         }
         val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)
@@ -389,13 +393,13 @@ class MainActivity : AppCompatActivity() {
         })
         card.addView(TextView(this).apply {
             text = getString(R.string.mine_privacy)
-            textSize = 12f; setTextColor(0xFF999999.toInt()); setPadding(0, 12, 0, 0)
+            textSize = 12f; setTextColor(UiTheme.textSecondary()); setPadding(0, 12, 0, 0)
         })
         page.addView(card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         val langCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(28, 24, 28, 24)
         }
         langCard.addView(TextView(this).apply {
@@ -414,6 +418,33 @@ class MainActivity : AppCompatActivity() {
         }
         langCard.addView(langRow)
         page.addView(langCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(16) })
+
+        // 外观：日间 / 夜间 / 跟随系统（切换即重建前台页面）
+        val themeCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(UiTheme.card())
+            setPadding(28, 24, 28, 24)
+        }
+        themeCard.addView(TextView(this).apply {
+            text = getString(R.string.mine_theme)
+            textSize = 14f
+            setPadding(0, 0, 0, 12)
+        })
+        val themeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val savedMode = ThemeStore.saved(this)
+        listOf(
+            getString(R.string.theme_light) to ThemeStore.MODE_LIGHT,
+            getString(R.string.theme_dark) to ThemeStore.MODE_DARK,
+            getString(R.string.theme_system) to ThemeStore.MODE_SYSTEM,
+        ).forEach { (label, mode) ->
+            themeRow.addView(Button(this).apply {
+                text = if (savedMode == mode) "✓ $label" else label
+                textSize = 13f
+                setOnClickListener { ThemeStore.set(applicationContext, mode) }
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        themeCard.addView(themeRow)
+        page.addView(themeCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(16) })
         return page
     }
 
@@ -421,7 +452,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildStorageCard(): View {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(28, 28, 28, 20)
         }
         val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)
@@ -437,7 +468,7 @@ class MainActivity : AppCompatActivity() {
         card.addView(TextView(this).apply {
             text = getString(R.string.used_of, ErrorCatalog.formatBytes(used), ErrorCatalog.formatBytes(total))
             textSize = 12f
-            setTextColor(0xFF999999.toInt())
+            setTextColor(UiTheme.textSecondary())
             setPadding(0, 4, 0, 8)
         })
         val prog = LinearProgressIndicator(this).apply {
@@ -449,7 +480,7 @@ class MainActivity : AppCompatActivity() {
         card.addView(TextView(this).apply {
             text = "$pct%"
             textSize = 12f
-            setTextColor(0xFF1296DB.toInt())
+            setTextColor(UiTheme.accent())
             setPadding(0, 8, 0, 0)
         })
         return card
@@ -461,7 +492,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildCategoryGrid(): View {
         val grid = GridLayout(this).apply {
             columnCount = 4
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(12, 24, 12, 24)
         }
         val cats = listOf(
@@ -486,7 +517,7 @@ class MainActivity : AppCompatActivity() {
             }
             cell.addView(android.widget.ImageView(this).apply {
                 setImageResource(iconRes)
-                setColorFilter(0xFF1296DB.toInt())
+                setColorFilter(UiTheme.accent())
                 setBackgroundResource(R.drawable.archive_icon_bg)
                 setPadding(dp(14), dp(14), dp(14), dp(14))
                 layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)).apply { gravity = Gravity.CENTER }
@@ -495,7 +526,7 @@ class MainActivity : AppCompatActivity() {
                 text = name; textSize = 13f; setPadding(0, 8, 0, 0); gravity = Gravity.CENTER
             })
             val cnt = TextView(this).apply {
-                text = ""; textSize = 11f; setTextColor(0xFF999999.toInt()); gravity = Gravity.CENTER
+                text = ""; textSize = 11f; setTextColor(UiTheme.textSecondary()); gravity = Gravity.CENTER
             }
             countViews[key] = cnt
             cell.addView(cnt)
@@ -576,7 +607,7 @@ class MainActivity : AppCompatActivity() {
         if (recentItems.isEmpty()) {
             container.addView(TextView(this).apply {
                 text = getString(R.string.list_none)
-                textSize = 13f; setTextColor(0xFF999999.toInt())
+                textSize = 13f; setTextColor(UiTheme.textSecondary())
                 setPadding(28, 16, 28, 16)
             })
             return
