@@ -155,11 +155,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 文件页：整页滚动（存储卡+宫格+最近文件一起滑，QQ浏览器式丝滑）。 */
+    private var filesScroll: androidx.core.widget.NestedScrollView? = null
+
     private fun buildFilesPage(): View {
         val page = androidx.core.widget.NestedScrollView(this).apply {
             setBackgroundColor(0xFFF5F6F8.toInt())
             isFillViewport = true
         }
+        filesScroll = page
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -567,6 +570,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
         recentItems.forEach { container.addView(buildRecentRow(it)) }
+        // 动态添加后强制 NestedScrollView 重算可滚动区域
+        filesScroll?.requestLayout()
     }
 
     private fun toast(msg: String) {
