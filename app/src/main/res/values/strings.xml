@@ -59,6 +59,7 @@
     <string name="mine_privacy">数据本地处理，不上传任何内容</string>
     <string name="mine_lang">语言 / Language</string>
     <string name="mine_theme">外观</string>
+    <string name="editor_save_failed">保存失败：文件可能为只读或存储不可写</string>
     <string name="theme_light">日间模式</string>
     <string name="theme_dark">夜间模式</string>
     <string name="theme_system">跟随系统</string>

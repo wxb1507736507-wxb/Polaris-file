@@ -59,6 +59,7 @@
     <string name="mine_privacy">All data is processed locally. Nothing is uploaded.</string>
     <string name="mine_lang">语言 / Language</string>
     <string name="mine_theme">Appearance</string>
+    <string name="editor_save_failed">Save failed: file may be read-only or storage unavailable</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Night</string>
     <string name="theme_system">Follow system</string>
