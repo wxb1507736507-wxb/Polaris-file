@@ -653,7 +653,15 @@ class FileListActivity : AppCompatActivity() {
             )
         }
         wrap.addView(img)
-        if (e.thumbKey != null) Thumbs.loadInto(this, e.thumbKey, e.path, img)
+        // 封面加载：优先 thumbKey（MediaStore），否则用 path（文件系统扫描的图片/视频）
+        val thumbPath = e.thumbKey?.let { k ->
+            // MediaStore 键 → 从 Entry.path 获取实际文件路径
+            e.path
+        } ?: e.path?.takeIf { Thumbs.hasCover(e.name) }
+        if (thumbPath != null || e.thumbKey != null) {
+            val key = e.thumbKey ?: e.path ?: e.name
+            Thumbs.loadInto(this, key, thumbPath, img)
+        }
         if (selecting && e.path != null) {
             val badge = TextView(this).apply {
                 text = if (sel) "✓" else ""
