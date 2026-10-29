@@ -7,6 +7,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.limao.unzip.ObjectGraph
+import com.limao.unzip.engine.api.ArchiveInfo
 import com.limao.unzip.engine.api.ExtractRequest
 import com.limao.unzip.engine.api.ExtractResult
 import com.limao.unzip.engine.engine.FileChannelInput
@@ -135,7 +136,15 @@ class ExtractionWorker(
                 android.os.ParcelFileDescriptor.MODE_READ_ONLY,
             )
             val source = com.limao.unzip.io.AndroidFdInput(pfd.detachFd())
-            val info = ObjectGraph.extractor.probe(source)
+            // 复用点击压缩包时的预检缓存，消除重复全量扫描（点击卡顿根因）
+            val cached = ObjectGraph.cachedProbe
+            val info = if (cached != null && cached.first == srcPath) {
+                cached.second
+            } else {
+                ObjectGraph.extractor.probe(source).also {
+                    ObjectGraph.cachedProbe = srcPath to it
+                }
+            }
             val journalDir = java.io.File(applicationContext.filesDir, "jobs").apply { mkdirs() }
             val journalFile = java.io.File(journalDir, "$id.journal")
             val journal = RecoveryJournal.open(journalFile)

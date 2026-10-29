@@ -61,7 +61,13 @@ class RoutingExtractor : ArchiveExtractor {
         private val routedNative: Boolean
 
         init {
-            val info = kotlinx.coroutines.runBlocking { probe(request.source) }
+            // 复用 UI 预检缓存（点击压缩包时已 scan），消除第三次全量扫描
+            val cached = com.limao.unzip.ObjectGraph.cachedProbe
+            val info = if (cached != null && request.options.password == null) {
+                cached.second
+            } else {
+                kotlinx.coroutines.runBlocking { probe(request.source) }
+            }
             // 加密包参考引擎不支持：加密 zip / 带密码 → 强制 native
             routedNative = info.format != com.limao.unzip.engine.api.ArchiveFormat.ZIP ||
                 info.anyEncrypted || request.options.password != null
