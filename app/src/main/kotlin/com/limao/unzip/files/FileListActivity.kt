@@ -420,7 +420,7 @@ class FileListActivity : AppCompatActivity() {
                         if (extracted != null) getString(R.string.extracted_badge) else getString(R.string.cat_archives),
                     )
                 }
-                "download" -> FileItems.downloads(archiveOnly = false)
+                "download" -> FileItems.netdiskDownloads(500)
                 "images" -> FileItems.images(this)
                 "video" -> FileItems.videos(this)
                 "audio" -> FileItems.audio(this)
