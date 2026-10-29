@@ -1,5 +1,7 @@
 package com.limao.unzip.webdav
 
+import com.limao.unzip.UiTheme
+
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -42,11 +44,11 @@ class WebDavActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFF5F6F8.toInt())
+            setBackgroundColor(UiTheme.pageBg())
             fitsSystemWindows = true
         }
         val bar = LinearLayout(this).apply {
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(24, 36, 24, 36)
             gravity = Gravity.CENTER_VERTICAL
         }
@@ -69,8 +71,8 @@ class WebDavActivity : AppCompatActivity() {
         root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         statusView = TextView(this).apply {
-            textSize = 12f; setTextColor(0xFF999999.toInt())
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            textSize = 12f; setTextColor(UiTheme.textSecondary())
+            setBackgroundColor(UiTheme.card())
             setPadding(24, 8, 24, 12)
             visibility = View.GONE
         }
@@ -100,7 +102,7 @@ class WebDavActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("webdav", MODE_PRIVATE)
         val form = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFFFFFFFF.toInt())
+            setBackgroundColor(UiTheme.card())
             setPadding(24, 16, 24, 16)
             tag = "form"
         }
@@ -209,7 +211,7 @@ class WebDavActivity : AppCompatActivity() {
                 val row = LinearLayout(this@WebDavActivity).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setBackgroundColor(0xFFFFFFFF.toInt())
+                    setBackgroundColor(UiTheme.card())
                     setPadding(28, 20, 28, 20)
                 }
                 row.addView(TextView(this@WebDavActivity).apply {
@@ -225,7 +227,7 @@ class WebDavActivity : AppCompatActivity() {
                 })
                 mid.addView(TextView(this@WebDavActivity).apply {
                     text = if (e.isDir) "—" else "${ErrorCatalog.formatBytes(e.size)} · ${dfmt.format(Date(e.mtime))}"
-                    textSize = 12f; setTextColor(0xFF999999.toInt())
+                    textSize = 12f; setTextColor(UiTheme.textSecondary())
                 })
                 row.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = 20 })
                 return row
