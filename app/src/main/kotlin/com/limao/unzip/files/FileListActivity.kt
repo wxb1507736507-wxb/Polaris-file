@@ -413,7 +413,7 @@ class FileListActivity : AppCompatActivity() {
         listView.visibility = View.GONE
         Thread {
             val list: List<Entry> = when (mode) {
-                "archives" -> ArchiveScanner.scanRoots().map {
+                "archives" -> ArchiveScanner.scanRoots(this).map {
                     val extracted = ExtractHistory.lookup(this, it.file.absolutePath)
                     Entry(
                         it.name, it.file.absolutePath, null, it.size, it.lastModified, false, "📦",
@@ -653,7 +653,15 @@ class FileListActivity : AppCompatActivity() {
             )
         }
         wrap.addView(img)
-        if (e.thumbKey != null) Thumbs.loadInto(this, e.thumbKey, e.path, img)
+        // 封面加载：优先 thumbKey（MediaStore），否则用 path（文件系统扫描的图片/视频）
+        val thumbPath = e.thumbKey?.let { k ->
+            // MediaStore 键 → 从 Entry.path 获取实际文件路径
+            e.path
+        } ?: e.path?.takeIf { Thumbs.hasCover(e.name) }
+        if (thumbPath != null || e.thumbKey != null) {
+            val key = e.thumbKey ?: e.path ?: e.name
+            Thumbs.loadInto(this, key, thumbPath, img)
+        }
         if (selecting && e.path != null) {
             val badge = TextView(this).apply {
                 text = if (sel) "✓" else ""
@@ -763,54 +771,7 @@ class FileListActivity : AppCompatActivity() {
     }
 
     private fun startExtract(src: File, dst: File, password: String? = null) {
-        // 加密预检：native 扫描加密标志 → 有密码需求且未提供时弹输入框
-        Thread {
-            var encrypted = false
-            runCatching {
-                val pfd = android.os.ParcelFileDescriptor.open(src, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
-                val input = com.limao.unzip.io.AndroidFdInput(pfd.detachFd())
-                try {
-                    encrypted = com.limao.unzip.native.NativeLibarchiveEngine().scan(input) { }.anyEncrypted
-                } finally {
-                    runCatching { input.close() }
-                }
-            }
-            // 预检同时缓存 probe 结果（含 entryCount/encrypted），供 Worker 与路由直接复用
-            runCatching {
-                val pfd2 = android.os.ParcelFileDescriptor.open(src, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
-                val input2 = com.limao.unzip.io.AndroidFdInput(pfd2.detachFd())
-                try {
-                    val engine = com.limao.unzip.native.NativeLibarchiveEngine()
-                    val info = engine.probe(input2)
-                    com.limao.unzip.ObjectGraph.cachedProbe = src.absolutePath to info
-                } finally {
-                    runCatching { input2.close() }
-                }
-            }
-            runOnUiThread {
-                if (encrypted && password == null) {
-                    askPassword(src, dst)
-                } else {
-                    enqueueExtract(src, dst, password)
-                }
-            }
-        }.start()
-    }
-
-    private fun askPassword(src: File, dst: File) {
-        val input = EditText(this).apply { hint = "密码" }
-        AlertDialog.Builder(this)
-            .setTitle("${getString(R.string.progress_title)} · ${src.name}")
-            .setMessage("此压缩包已加密，请输入密码。")
-            .setView(input)
-            .setPositiveButton("OK") { _, _ ->
-                enqueueExtract(src, dst, input.text.toString().takeIf { it.isNotEmpty() })
-            }
-            .setNegativeButton(getString(R.string.btn_cancel), null)
-            .show()
-    }
-
-    private fun enqueueExtract(src: File, dst: File, password: String?) {
+        // 点击即入队+打开进度弹层，零预检零卡顿；加密在 Worker 内检测，失败后经 NEED_PASSWORD 重试
         val request = OneTimeWorkRequestBuilder<ExtractionWorker>()
             .setInputData(
                 workDataOf(
@@ -821,9 +782,12 @@ class FileListActivity : AppCompatActivity() {
             )
             .build()
         WorkManager.getInstance(this).enqueue(request)
-        ObjectGraph.lastAction = "extract"
-        // 进度弹层：实时百分比，完成后"查看已解压文件"直达目录
-        startActivity(Intent(this, ProgressActivity::class.java).putExtra(ProgressActivity.EXTRA_NAME, src.name))
+        startActivity(
+            Intent(this, ProgressActivity::class.java)
+                .putExtra(ProgressActivity.EXTRA_NAME, src.name)
+                .putExtra(ProgressActivity.EXTRA_SRC, src.absolutePath)
+                .putExtra(ProgressActivity.EXTRA_DST, dst.absolutePath),
+        )
     }
 
     private fun startCompress(dir: File, format: CreateFormat) {

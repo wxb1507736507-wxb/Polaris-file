@@ -155,11 +155,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 文件页：整页滚动（存储卡+宫格+最近文件一起滑，QQ浏览器式丝滑）。 */
+    private var filesScroll: androidx.core.widget.NestedScrollView? = null
+
     private fun buildFilesPage(): View {
         val page = androidx.core.widget.NestedScrollView(this).apply {
             setBackgroundColor(0xFFF5F6F8.toInt())
             isFillViewport = true
         }
+        filesScroll = page
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -196,7 +199,7 @@ class MainActivity : AppCompatActivity() {
 
     private var recentContainer: LinearLayout? = null
 
-    /** 最近文件行（点击打开/进入，长按操作菜单）。 */
+    /** 最近文件行（点击打开/进入，长按操作菜单；图片/视频显示封面缩略图）。 */
     private fun buildRecentRow(item: RecentItem): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -205,18 +208,30 @@ class MainActivity : AppCompatActivity() {
             setPadding(28, 20, 28, 20)
             isHapticFeedbackEnabled = false
         }
-        row.addView(android.widget.ImageView(this).apply {
-            setImageResource(
-                when {
-                    item.isExtractedDir -> R.drawable.ic_folder
-                    com.limao.unzip.files.ArchiveScanner.isArchive(item.name) -> R.drawable.ic_archive
-                    else -> com.limao.unzip.files.FileItems.iconResFor(item.name)
-                },
-            )
-            setColorFilter(0xFF1296DB.toInt())
-            setBackgroundResource(R.drawable.archive_icon_bg)
-            layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
-        })
+        // 图片/视频且有路径 → 加载封面缩略图；否则 Material 矢量图标
+        val isMediaFile = !item.isExtractedDir && item.path != null &&
+            com.limao.unzip.files.Thumbs.hasCover(item.name)
+        if (isMediaFile) {
+            val img = android.widget.ImageView(this).apply {
+                scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
+            }
+            row.addView(img)
+            com.limao.unzip.files.Thumbs.loadInto(this, item.path!!, item.path, img)
+        } else {
+            row.addView(android.widget.ImageView(this).apply {
+                setImageResource(
+                    when {
+                        item.isExtractedDir -> R.drawable.ic_folder
+                        com.limao.unzip.files.ArchiveScanner.isArchive(item.name) -> R.drawable.ic_archive
+                        else -> com.limao.unzip.files.FileItems.iconResFor(item.name)
+                    },
+                )
+                setColorFilter(0xFF1296DB.toInt())
+                setBackgroundResource(R.drawable.archive_icon_bg)
+                layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
+            })
+        }
         val mid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         mid.addView(TextView(this).apply {
             text = item.name; textSize = 14f; maxLines = 1
@@ -499,7 +514,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadCategoryCounts() {
         Thread {
             val counts = HashMap<String, Int>()
-            runCatching { counts["archives"] = ArchiveScanner.scanRoots().size }
+            runCatching { counts["archives"] = ArchiveScanner.scanRoots(this).size }
             runCatching {
                 counts["download"] = Environment
                     .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -567,6 +582,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
         recentItems.forEach { container.addView(buildRecentRow(it)) }
+        // 动态添加后强制 NestedScrollView 重算可滚动区域
+        filesScroll?.requestLayout()
     }
 
     private fun toast(msg: String) {
