@@ -58,7 +58,8 @@ object Thumbs {
         when {
             // MediaStore 键（"img:123"/"vid:456"）→ 从 MediaStore 或对应文件解码
             key.startsWith("img:") || key.startsWith("vid:") -> decodeMediaStore(context, key, path)
-            // 纯文件路径 → 直接采样解码
+            // 纯路径键：视频走首帧提取（key 即路径），否则按图片采样
+            path != null && isVideo(key) -> decodeVideoFrame(path)
             path != null -> decodeSampled(path, 256)
             else -> null
         }
