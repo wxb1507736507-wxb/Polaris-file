@@ -11,8 +11,8 @@ android {
         applicationId = "com.limao.unzip"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "0.9.18"
+        versionCode = 15
+        versionName = "0.9.19"
         resourceConfigurations += listOf("zh", "en")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {

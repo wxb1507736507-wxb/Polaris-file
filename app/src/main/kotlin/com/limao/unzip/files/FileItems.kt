@@ -283,6 +283,13 @@ object FileItems {
         return out.sortedByDescending { it.time }
     }
 
+    /** 音频扩展名（内建播放器承载）。 */
+    fun isAudioName(name: String): Boolean {
+        val lower = name.lowercase()
+        return listOf(".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".wma", ".opus")
+            .any { lower.endsWith(it) }
+    }
+
     fun isTextName(name: String): Boolean {
         val lower = name.lowercase()
         return listOf(".txt", ".log", ".md", ".xml", ".json", ".csv", ".html", ".htm", ".py", ".java", ".kt", ".c", ".cpp", ".h", ".sh", ".properties", ".ini", ".conf", ".yaml", ".yml", ".js", ".ts", ".css")
