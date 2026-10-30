@@ -313,4 +313,35 @@ object FileItems {
         val dot = name.lastIndexOf('.')
         return if (dot > 0) name.substring(dot + 1).uppercase() else "文件"
     }
+
+    /** 图片/视频扩展名：最近文件中此类媒体限额展示，避免相机内容淹没文档/压缩包等类型。 */
+    val MEDIA_EXTS = listOf(
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".heic",
+        ".mp4", ".mkv", ".mov", ".3gp", ".webm",
+    )
+
+    fun isMediaFile(name: String): Boolean = MEDIA_EXTS.any { name.lowercase().endsWith(it) }
+
+    /**
+     * 统一「最近文件」数据源（首页与最近分类共用，保证两处显示完全一致）：
+     * MediaStore 全类型 + 文件系统补充 + 最近解压目录，去重后按时间倒序；
+     * 图片/视频最多 mediaQuota 条，其余类型（txt/docx/xlsx/pptx/pdf/apk/zip/rar/mp3…）保证 fileQuota 条。
+     */
+    fun recentMixed(ctx: Context, mediaQuota: Int = 6, fileQuota: Int = 6): List<Entry> {
+        val merged = ArrayList<Entry>(128)
+        runCatching { merged.addAll(recentAll(ctx, 120)) }
+        runCatching { merged.addAll(recentFs(120)) }
+        runCatching {
+            ExtractHistory.all(ctx).take(2).forEach { (_, dst, time) ->
+                val f = File(dst)
+                merged.add(Entry(f.name, dst, null, 0L, time, true, "📁", "已解压"))
+            }
+        }
+        val seen = HashSet<String>()
+        val all = merged.sortedByDescending { it.time }
+            .filter { seen.add(it.name + ":" + (it.path ?: it.uri.toString())) }
+        val mediaTop = all.filter { isMediaFile(it.name) }.take(mediaQuota)
+        val fileTop = all.filter { !isMediaFile(it.name) }.take(fileQuota)
+        return (mediaTop + fileTop).sortedByDescending { it.time }
+    }
 }
