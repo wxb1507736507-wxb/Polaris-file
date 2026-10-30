@@ -535,10 +535,13 @@ class MainActivity : AppCompatActivity() {
         options.forEach { (label, value) ->
             val btn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 text = label
-                textSize = 13f
+                textSize = 12f
                 isCheckable = true
+                isAllCaps = false
                 id = View.generateViewId()
                 insetTop = 0; insetBottom = 0
+                minWidth = 0
+                setPadding(0, 0, 0, 0)
             }
             group.addView(btn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             if (value == checkedValue) group.check(btn.id)
