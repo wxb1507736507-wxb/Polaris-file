@@ -1,6 +1,8 @@
 package com.limao.unzip.files
 
 import android.media.MediaMetadataRetriever
+import com.limao.unzip.files.player.AudioInfo
+import com.limao.unzip.files.player.use
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
@@ -43,6 +45,7 @@ class PlayerActivity : AppCompatActivity() {
     private var fallbackTried = false
     private lateinit var file: File
     private lateinit var seek: SeekBar
+    private lateinit var infoText: TextView
     private lateinit var curTime: TextView
     private lateinit var playBtn: TextView
     private lateinit var surfaceView: SurfaceView
@@ -130,6 +133,10 @@ class PlayerActivity : AppCompatActivity() {
             ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
+        bar.addView(TextView(this).apply {
+            text = "⋮"; textSize = 22f; setTextColor(0xFFDDDDDD.toInt()); setPadding(dp(16), 0, 0, 0)
+            setOnClickListener { showPlayerActions() }
+        })
         root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         var art: ImageView? = null
@@ -157,6 +164,11 @@ class PlayerActivity : AppCompatActivity() {
                 textSize = 13f; setTextColor(0xFF999999.toInt())
                 gravity = Gravity.CENTER; maxLines = 1
                 setPadding(dp(24), dp(6), dp(24), 0)
+            }
+            infoText = TextView(this).apply {
+                textSize = 12f; setTextColor(0xFF9AA3AC.toInt())
+                gravity = Gravity.CENTER; maxLines = 1
+                setPadding(dp(24), dp(10), dp(24), 0)
             }
         }
 
@@ -222,11 +234,26 @@ class PlayerActivity : AppCompatActivity() {
             }
             bottom.addView(title)
             bottom.addView(artist)
+            bottom.addView(infoText)
             bottom.addView(playBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(30) })
             bottom.addView(timeRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(34) })
             root.addView(bottom, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-            // 音频元数据/封面
-            loadAudioMeta(art, title!!, artist!!)
+            // 音频元数据（MaterialFiles 的 AudioInfoLiveData 抄录适配）+ 封面
+            loadEmbeddedArt(art)
+            com.limao.unzip.files.player.AudioInfoLiveData(file.absolutePath).observe(this) { state ->
+                val info = (state as? com.limao.unzip.files.player.Stateful.Success<AudioInfo>)?.value
+                    ?: return@observe
+                if (isFinishing || isDestroyed) return@observe
+                title!!.text = (info.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension)
+                artist!!.text = (info.artist?.takeIf { it.isNotBlank() }
+                    ?: info.album?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.player_local_audio))
+                infoText!!.text = listOfNotNull(
+                    info.bitRate?.let { "${it / 1000} kbps" },
+                    info.sampleRate?.let { "${it / 1000} kHz" },
+                    info.genre?.takeIf { it.isNotBlank() },
+                ).joinToString(" · ").ifEmpty { "无损解码直出" }
+            }
         }
 
         setContentView(root)
@@ -351,21 +378,19 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun ext(): String = file.name.substringAfterLast('.', "").lowercase()
 
-    // ---------- 音频元数据 ----------
+    // ---------- 音频封面 ----------
 
-    private fun loadAudioMeta(art: ImageView?, title: TextView, artist: TextView) {
+    private fun loadEmbeddedArt(art: ImageView?) {
         Thread {
-            val r = MediaMetadataRetriever()
             var bitmap: android.graphics.Bitmap? = null
-            var mTitle: String? = null
-            var mArtist: String? = null
             runCatching {
-                r.setDataSource(file.absolutePath)
-                bitmap = r.embeddedPicture?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
-                mTitle = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                mArtist = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                MediaMetadataRetriever().use { r ->
+                    r.setDataSource(file.absolutePath)
+                    bitmap = r.embeddedPicture?.let {
+                        android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size)
+                    }
+                }
             }
-            runCatching { r.release() }
             runOnUiThread {
                 if (bitmap != null) {
                     art?.setImageBitmap(bitmap)
@@ -373,10 +398,101 @@ class PlayerActivity : AppCompatActivity() {
                     art?.setImageResource(R.drawable.ic_audiotrack)
                     art?.setColorFilter(0xFF9AA3AC.toInt())
                 }
-                title.text = (mTitle?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension)
-                artist.text = (mArtist?.takeIf { it.isNotBlank() } ?: getString(R.string.player_local_audio))
             }
         }.start()
+    }
+
+    // ---------- 播放器操作单（MaterialFiles 风格底部列表） ----------
+
+    private fun showPlayerActions() {
+        val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(16), dp(8), dp(24))
+        }
+        container.addView(TextView(this).apply {
+            text = "播放器选项"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(if (com.limao.unzip.UiTheme.isNight()) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt())
+            setPadding(dp(16), dp(4), dp(16), dp(10))
+        })
+
+        fun actionRow(label: String, onClick: () -> Unit) {
+            container.addView(TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(if (com.limao.unzip.UiTheme.isNight()) 0xFFDDDDDD.toInt() else 0xFF1D1B20.toInt())
+                setPadding(dp(16), dp(14), dp(16), dp(14))
+                bgResource(android.R.attr.selectableItemBackground)
+                setOnClickListener { onClick() }
+            })
+        }
+
+        if (exo != null) {
+            val repeatLabel = when (exo?.repeatMode) {
+                Player.REPEAT_MODE_ONE -> "单曲循环"
+                Player.REPEAT_MODE_ALL -> "列表循环"
+                else -> "关闭"
+            }
+            actionRow("循环播放：$repeatLabel") {
+                exo?.repeatMode = when (exo?.repeatMode) {
+                    Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
+                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                    else -> Player.REPEAT_MODE_ALL
+                }
+                sheet.dismiss()
+                showPlayerActions()
+            }
+            actionRow("播放速度：${speedLabel}") {
+                sheet.dismiss()
+                showSpeedSheet()
+            }
+        } else {
+            actionRow("当前引擎（平台回退）不支持速度与循环") { }
+        }
+        sheet.setContentView(container)
+        sheet.show()
+    }
+
+    private var speedLabel = "1x"
+
+    private fun showSpeedSheet() {
+        val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), dp(16), dp(8), dp(24))
+        }
+        container.addView(TextView(this).apply {
+            text = "播放速度"
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(if (com.limao.unzip.UiTheme.isNight()) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt())
+            setPadding(dp(16), dp(4), dp(16), dp(10))
+        })
+        listOf("0.5x" to 0.5f, "0.75x" to 0.75f, "1x" to 1f, "1.25x" to 1.25f, "1.5x" to 1.5f, "2x" to 2f)
+            .forEach { (label, speed) ->
+                container.addView(TextView(this).apply {
+                    text = if (label == speedLabel) "✓ $label" else label
+                    textSize = 15f
+                    setTextColor(if (com.limao.unzip.UiTheme.isNight()) 0xFFDDDDDD.toInt() else 0xFF1D1B20.toInt())
+                    setPadding(dp(16), dp(14), dp(16), dp(14))
+                    bgResource(android.R.attr.selectableItemBackground)
+                    setOnClickListener {
+                        exo?.setPlaybackSpeed(speed)
+                        speedLabel = label
+                        sheet.dismiss()
+                    }
+                })
+            }
+        sheet.setContentView(container)
+        sheet.show()
+    }
+
+    private fun TextView.bgResource(attr: Int) {
+        val out = android.util.TypedValue()
+        context.theme.resolveAttribute(attr, out, true)
+        setBackgroundResource(out.resourceId)
     }
 
     // ---------- 工具 ----------
