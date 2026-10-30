@@ -825,17 +825,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 最近文件 = 全类型最近文件（MediaStore：txt/docx/xlsx/pptx/pdf/apk/zip/rar/mp4/mp3…，时间倒序）
-     *  + 文件系统补充（MediaStore 未及时索引的文件）+ 最近解压目录，全局按时间倒序去重。 */
+     *  + 文件系统补充（MediaStore 未及时索引的文件）+ 最近解压目录。
+     *  展示配额：图片/视频最多 6 条（避免相机照片淹没其它类型），文档/压缩包/安装包/音频等
+     *  非媒体类型保证 6 条名额，两组合并后仍按时间倒序，共 12 条。 */
     private fun refreshRecent() {
         Thread {
-            val merged = ArrayList<RecentItem>(48)
+            val merged = ArrayList<RecentItem>(96)
             runCatching {
-                com.limao.unzip.files.FileItems.recentAll(this, 60).forEach { e ->
+                com.limao.unzip.files.FileItems.recentAll(this, 120).forEach { e ->
                     merged.add(RecentItem(e.name, e.path, e.uri, e.size, e.time, false))
                 }
             }
             runCatching {
-                com.limao.unzip.files.FileItems.recentFs(60).forEach { e ->
+                com.limao.unzip.files.FileItems.recentFs(120).forEach { e ->
                     merged.add(RecentItem(e.name, e.path, null, e.size, e.time, false))
                 }
             }
@@ -845,9 +847,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             val seen = HashSet<String>()
-            val top = merged.sortedByDescending { it.time }
+            val all = merged.sortedByDescending { it.time }
                 .filter { seen.add(it.name + ":" + (it.path ?: it.uri.toString())) }
-                .take(8)
+            val mediaTop = all.filter { isMediaFile(it.name) }.take(6)
+            val fileTop = all.filter { !isMediaFile(it.name) }.take(6)
+            val top = (mediaTop + fileTop).sortedByDescending { it.time }
             runOnUiThread {
                 recentItems = top
                 renderRecent()
@@ -874,6 +878,14 @@ class MainActivity : AppCompatActivity() {
     private fun toast(msg: String) {
         android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
     }
+
+    /** 图片/视频扩展名：最近文件中此类媒体限额展示，保证文档/压缩包/安装包/音频等类型可见。 */
+    private val MEDIA_EXTS = listOf(
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".heic",
+        ".mp4", ".mkv", ".mov", ".3gp", ".webm",
+    )
+
+    private fun isMediaFile(name: String): Boolean = MEDIA_EXTS.any { name.lowercase().endsWith(it) }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 }
