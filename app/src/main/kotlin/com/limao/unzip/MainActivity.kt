@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             fitsSystemWindows = true
         }
         root.addView(TextView(this).apply {
-            text = "🎩"; textSize = 56f; gravity = Gravity.CENTER
+            text = "⭐"; textSize = 56f; gravity = Gravity.CENTER
         })
         root.addView(TextView(this).apply {
             text = getString(R.string.app_name)
