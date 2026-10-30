@@ -748,10 +748,10 @@ class FileListActivity : AppCompatActivity() {
                 Intent(this, com.limao.unzip.files.ImagePreviewActivity::class.java)
                     .putExtra(com.limao.unzip.files.ImagePreviewActivity.EXTRA_PATH, e.path),
             )
-            // 音频内建播放器
-            com.limao.unzip.files.FileItems.isAudioName(e.name) && e.path != null -> startActivity(
-                Intent(this, com.limao.unzip.files.AudioPlayerActivity::class.java)
-                    .putExtra(com.limao.unzip.files.AudioPlayerActivity.EXTRA_PATH, e.path),
+            // 音频/视频内建播放器
+            (com.limao.unzip.files.FileItems.isAudioName(e.name) || com.limao.unzip.files.PlayerActivity.isVideoExt(e.name)) && e.path != null -> startActivity(
+                Intent(this, com.limao.unzip.files.PlayerActivity::class.java)
+                    .putExtra(com.limao.unzip.files.PlayerActivity.EXTRA_PATH, e.path),
             )
             // Office 文本提取预览（docx/xlsx/pptx 只读；老格式跳系统）
             com.limao.unzip.files.OfficeText.supported(e.name) && e.path != null -> openEditor(File(e.path!!))
