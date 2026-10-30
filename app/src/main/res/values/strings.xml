@@ -32,7 +32,8 @@
     <string name="webdav_pass">密码/应用密码</string>
     <string name="webdav_connect">连接</string>
     <string name="webdav_list_error">连接失败，请检查地址/账号/网络</string>
-    <string name="webdav_download_started">已开始下载到 Download/PolarisWebDav：</string>
+    <string name="webdav_download_started">将下载到</string>
+    <string name="webdav_downloading">正在下载</string>
     <string name="webdav_download_done">下载完成：</string>
     <string name="webdav_enter_path">进入路径浏览（可选，留空为根）</string>
     <string name="recent_archives">最近压缩包</string>
