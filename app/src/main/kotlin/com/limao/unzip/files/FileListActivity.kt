@@ -427,7 +427,7 @@ class FileListActivity : AppCompatActivity() {
                 "audio" -> FileItems.audio(this)
                 "docs" -> FileItems.docs(this)
                 "apk" -> FileItems.apks(this)
-                "recent" -> FileItems.recentFs(limit = 300)
+                "recent" -> FileItems.recentMixed(this)
                 "browser" -> FileItems.listDir(File(browserPath!!), archiveOnly = false)
                 else -> emptyList()
             }
@@ -704,76 +704,9 @@ class FileListActivity : AppCompatActivity() {
         return cell
     }
 
+    /** 打开条目：与首页最近文件共用统一分派器（FileOpener），行为完全一致。 */
     private fun onEntry(e: Entry) {
-        when {
-            e.isDir -> startActivity(Intent(this, FileListActivity::class.java).apply {
-                putExtra(EXTRA_MODE, "browser")
-                putExtra(EXTRA_PATH, e.path)
-            })
-
-            ArchiveScanner.isArchive(e.name) && e.path != null -> {
-                val file = File(e.path)
-                val rec = ExtractHistory.lookup(this, e.path)
-                if (rec != null) {
-                    AlertDialog.Builder(this)
-                        .setTitle(e.name)
-                        .setMessage(getString(R.string.ask_msg, dfmt.format(Date(rec.time))))
-                        .setPositiveButton(getString(R.string.ask_open)) { _, _ ->
-                            startActivity(Intent(this, FileListActivity::class.java).apply {
-                                putExtra(EXTRA_MODE, "browser")
-                                putExtra(EXTRA_PATH, rec.dstDir)
-                            })
-                        }
-                        .setNegativeButton(getString(R.string.ask_re)) { _, _ ->
-                            val dst = File(file.parentFile ?: Environment.getExternalStorageDirectory(), e.name.substringBeforeLast('.'))
-                            dst.mkdirs()
-                            startExtract(file, dst)
-                        }
-                        .setNeutralButton(getString(R.string.btn_cancel), null)
-                        .show()
-                } else {
-                    val dst = File(file.parentFile ?: Environment.getExternalStorageDirectory(), e.name.substringBeforeLast('.'))
-                    dst.mkdirs()
-                    startExtract(file, dst)
-                }
-            }
-
-            // PDF 内建阅读器
-            e.name.endsWith(".pdf", true) && e.path != null -> startActivity(
-                Intent(this, com.limao.unzip.files.PdfReaderActivity::class.java)
-                    .putExtra(com.limao.unzip.files.PdfReaderActivity.EXTRA_PATH, e.path),
-            )
-            // 图片内建查看
-            e.path != null && isImageName(e.name) -> startActivity(
-                Intent(this, com.limao.unzip.files.ImagePreviewActivity::class.java)
-                    .putExtra(com.limao.unzip.files.ImagePreviewActivity.EXTRA_PATH, e.path),
-            )
-            // 音频/视频内建播放器
-            (com.limao.unzip.files.FileItems.isAudioName(e.name) || com.limao.unzip.files.PlayerActivity.isVideoExt(e.name)) && e.path != null -> startActivity(
-                Intent(this, com.limao.unzip.files.PlayerActivity::class.java)
-                    .putExtra(com.limao.unzip.files.PlayerActivity.EXTRA_PATH, e.path),
-            )
-            // Office 文本提取预览（docx/xlsx/pptx 只读；老格式跳系统）
-            com.limao.unzip.files.OfficeText.supported(e.name) && e.path != null -> openEditor(File(e.path!!))
-            isTextName(e.name) && e.path != null -> openEditor(File(e.path))
-
-            e.uri != null -> runCatching {
-                startActivity(Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(e.uri, contentResolver.getType(e.uri))
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                })
-            }.onFailure { toast(getString(R.string.toast_cant_open, e.name)) }
-
-            e.path != null -> {
-                val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", File(e.path))
-                runCatching {
-                    startActivity(Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, contentResolver.getType(uri) ?: "*/*")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    })
-                }.onFailure { toast(getString(R.string.toast_cant_open, e.name)) }
-            }
-        }
+        FileOpener.open(this, e.name, e.path, e.uri, isDirHint = e.isDir)
     }
 
     private fun startExtract(src: File, dst: File, password: String? = null) {
