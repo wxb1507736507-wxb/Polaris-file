@@ -13,7 +13,7 @@
     <!-- 底部标签 -->
     <string name="tab_files">文件</string>
     <string name="tab_tools">工具</string>
-    <string name="tab_mine">我的</string>
+    <string name="tab_mine">设置</string>
 
     <!-- 分类 -->
     <string name="cat_archives">压缩包</string>
@@ -58,6 +58,13 @@
     <string name="mine_free">存储空间　%1$s 可用</string>
     <string name="mine_privacy">数据本地处理，不上传任何内容</string>
     <string name="mine_lang">语言 / Language</string>
+    <string name="settings_section_storage">存储概览</string>
+    <string name="settings_section_general">通用</string>
+    <string name="settings_section_about">关于</string>
+    <string name="settings_version">版本</string>
+    <string name="settings_permission">文件访问权限</string>
+    <string name="settings_privacy">数据隐私</string>
+    <string name="settings_privacy_desc">仅本地处理</string>
     <string name="mine_theme">外观</string>
     <string name="editor_save_failed">保存失败：文件可能为只读或存储不可写</string>
     <string name="theme_light">日间模式</string>
