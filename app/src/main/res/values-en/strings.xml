@@ -77,6 +77,7 @@
     <string name="settings_permission">All-files access</string>
     <string name="settings_privacy">Privacy</string>
     <string name="settings_privacy_desc">Local only</string>
+    <string name="player_local_audio">Local audio</string>
     <string name="mine_theme">Appearance</string>
     <string name="editor_save_failed">Save failed: file may be read-only or storage unavailable</string>
     <string name="theme_light">Light</string>

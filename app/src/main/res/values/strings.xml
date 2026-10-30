@@ -77,6 +77,7 @@
     <string name="settings_permission">文件访问权限</string>
     <string name="settings_privacy">数据隐私</string>
     <string name="settings_privacy_desc">仅本地处理</string>
+    <string name="player_local_audio">本地音频</string>
     <string name="mine_theme">外观</string>
     <string name="editor_save_failed">保存失败：文件可能为只读或存储不可写</string>
     <string name="theme_light">日间模式</string>

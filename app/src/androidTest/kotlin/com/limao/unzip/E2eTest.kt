@@ -275,4 +275,22 @@ class E2eTest {
         assertNotNull("JPEG 应可解码", decoded)
         assertEquals(48, decoded.width)
     }
+
+    @Test
+    fun audioPlayerPlays() {
+        val intent = android.content.Intent(
+            InstrumentationRegistry.getInstrumentation().targetContext,
+            com.limao.unzip.files.AudioPlayerActivity::class.java,
+        ).putExtra(com.limao.unzip.files.AudioPlayerActivity.EXTRA_PATH, fix("tone.wav").absolutePath)
+        ActivityScenario.launch<com.limao.unzip.files.AudioPlayerActivity>(intent).use { scenario ->
+            // prepare 后应自动播放（异步，最长等 5s）
+            val end = SystemClock.uptimeMillis() + 5000
+            var playing = false
+            while (SystemClock.uptimeMillis() < end && !playing) {
+                scenario.onActivity { playing = it.isPlayingNow() }
+                if (!playing) SystemClock.sleep(200)
+            }
+            assertTrue("音频应处于播放状态", playing)
+        }
+    }
 }

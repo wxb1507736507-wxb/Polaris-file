@@ -291,6 +291,11 @@ class MainActivity : AppCompatActivity() {
             item.path != null && java.io.File(item.path).isFile -> {
                 if (com.limao.unzip.files.FileItems.isTextName(item.name)) {
                     startActivity(Intent(this, TextEditorActivity::class.java).putExtra(TextEditorActivity.EXTRA_PATH, item.path))
+                } else if (com.limao.unzip.files.FileItems.isAudioName(item.name)) {
+                    startActivity(
+                        Intent(this, com.limao.unzip.files.AudioPlayerActivity::class.java)
+                            .putExtra(com.limao.unzip.files.AudioPlayerActivity.EXTRA_PATH, item.path),
+                    )
                 } else runCatching {
                     val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", java.io.File(item.path))
                     startActivity(

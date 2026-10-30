@@ -66,6 +66,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".files.AudioPlayerActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".files.ProgressActivity"
             android:exported="false"
             android:theme="@style/Theme.Progress" />
