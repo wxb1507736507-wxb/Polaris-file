@@ -65,8 +65,11 @@ class MainActivity : AppCompatActivity() {
 
     private var homeBuilt = false
 
-    /** 当前标签（0=文件 1=我的），主题切换导致 Activity 重建后保持。 */
-    private var lastTab = 0
+    companion object {
+        /** 当前标签（0=文件 1=设置），进程内静态：主题/语言切换导致 Activity 重建后保持。 */
+        @Volatile
+        var lastTab = 0
+    }
 
     // ---------- 权限引导 ----------
     private fun showPermissionGuide() {
@@ -134,7 +137,7 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(UiTheme.card())
             setPadding(0, 10, 0, 16)
         }
-        val tabs = listOf("📁" to getString(R.string.tab_files), "👤" to getString(R.string.tab_mine))
+        val tabs = listOf("📁" to getString(R.string.tab_files), "🛠️" to getString(R.string.tab_mine))
         tabViews = tabs.mapIndexed { i, (icon, label) ->
             TextView(this).apply {
                 gravity = Gravity.CENTER
@@ -349,103 +352,199 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    /** 我的页 */
+    /** 设置页（M3 仪表盘）：存储概览 + 通用偏好（外观/语言）+ 关于。 */
     private fun buildMinePage(): View {
+        val scroll = androidx.core.widget.NestedScrollView(this).apply {
+            setBackgroundColor(UiTheme.pageBg())
+            isFillViewport = true
+        }
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setBackgroundColor(UiTheme.pageBg())
-            setPadding(24, 60, 24, 24)
+            setPadding(24, 48, 24, 24)
         }
+        scroll.addView(page, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+
         page.addView(TextView(this).apply {
-            text = "🧭"; textSize = 52f; gravity = Gravity.CENTER; setPadding(0, 24, 0, 8)
-        })
-        page.addView(TextView(this).apply {
-            text = getString(R.string.app_name)
+            text = getString(R.string.tab_mine)
             textSize = 22f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-            gravity = Gravity.CENTER
+            setPadding(8, 8, 8, 4)
         })
         page.addView(TextView(this).apply {
             text = getString(R.string.mine_subtitle)
-            textSize = 13f
+            textSize = 12f
             setTextColor(UiTheme.textSecondary())
-            gravity = Gravity.CENTER
-            setPadding(0, 6, 0, 24)
+            setPadding(8, 0, 8, 8)
         })
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(UiTheme.card())
-            setPadding(28, 24, 28, 24)
-        }
-        val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)
-        card.addView(TextView(this).apply { text = getString(R.string.mine_version); textSize = 14f; setPadding(0, 8, 0, 8) })
-        card.addView(TextView(this).apply {
-            text = getString(
-                R.string.mine_perm,
-                getString(if (Environment.isExternalStorageManager()) R.string.mine_perm_granted else R.string.mine_perm_denied),
+
+        // ---- 存储概览 ----
+        page.addView(sectionLabel(getString(R.string.settings_section_storage)))
+        page.addView(m3Card { card ->
+            val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)
+            val total = stat.totalBytes
+            val avail = stat.availableBytes
+            val used = total - avail
+            val pct = if (total > 0) (used * 100 / total).toInt() else 0
+            card.addView(TextView(this@MainActivity).apply {
+                text = getString(R.string.storage_title)
+                textSize = 16f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            })
+            card.addView(LinearProgressIndicator(this@MainActivity).apply {
+                max = 100
+                setProgress(pct, true)
+                trackCornerRadius = dp(4)
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(12)).apply { topMargin = dp(14) })
+            card.addView(TextView(this@MainActivity).apply {
+                text = "$pct% · ${getString(R.string.used_of, ErrorCatalog.formatBytes(used), ErrorCatalog.formatBytes(total))}"
+                textSize = 12f
+                setTextColor(UiTheme.textSecondary())
+                setPadding(0, dp(10), 0, 0)
+            })
+            card.addView(divider())
+            card.addView(settingsRow("💾", getString(R.string.mine_free, ErrorCatalog.formatBytes(stat.availableBytes)), "") { })
+        })
+
+        // ---- 通用 ----
+        page.addView(sectionLabel(getString(R.string.settings_section_general)))
+        page.addView(m3Card { card ->
+            card.addView(TextView(this@MainActivity).apply {
+                text = getString(R.string.mine_theme)
+                textSize = 15f
+                setPadding(0, dp(4), 0, dp(10))
+            })
+            val savedMode = ThemeStore.saved(this@MainActivity)
+            val themeModes = listOf(
+                getString(R.string.theme_light) to ThemeStore.MODE_LIGHT,
+                getString(R.string.theme_dark) to ThemeStore.MODE_DARK,
+                getString(R.string.theme_system) to ThemeStore.MODE_SYSTEM,
             )
-            textSize = 14f; setPadding(0, 8, 0, 8)
+            card.addView(segmentedGroup(themeModes, savedMode) { ThemeStore.set(applicationContext, it) })
+            card.addView(TextView(this@MainActivity).apply {
+                text = getString(R.string.mine_lang)
+                textSize = 15f
+                setPadding(0, dp(18), 0, dp(10))
+            })
+            val langTags = listOf("中文" to "zh-CN", "English" to "en")
+            val currentTag = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+            val checked = langTags.firstOrNull { currentTag.startsWith(it.second) }?.second ?: "zh-CN"
+            card.addView(segmentedGroup(langTags, checked) { tag ->
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+            })
         })
-        card.addView(TextView(this).apply {
-            text = getString(R.string.mine_free, ErrorCatalog.formatBytes(stat.availableBytes))
-            textSize = 14f; setPadding(0, 8, 0, 8)
-        })
-        card.addView(TextView(this).apply {
-            text = getString(R.string.mine_privacy)
-            textSize = 12f; setTextColor(UiTheme.textSecondary()); setPadding(0, 12, 0, 0)
-        })
-        page.addView(card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        val langCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(UiTheme.card())
-            setPadding(28, 24, 28, 24)
-        }
-        langCard.addView(TextView(this).apply {
-            text = getString(R.string.mine_lang)
-            textSize = 14f
-            setPadding(0, 0, 0, 12)
-        })
-        val langRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("中文" to "zh-CN", "English" to "en").forEach { (label, tag) ->
-            langRow.addView(Button(this).apply {
-                text = label; textSize = 13f
-                setOnClickListener {
-                    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+        // ---- 关于 ----
+        page.addView(sectionLabel(getString(R.string.settings_section_about)))
+        page.addView(m3Card { card ->
+            val ver = runCatching {
+                packageManager.getPackageInfo(packageName, 0).versionName
+            }.getOrNull() ?: "?"
+            card.addView(settingsRow("ℹ️", getString(R.string.settings_version), ver) { })
+            card.addView(divider())
+            val granted = Environment.isExternalStorageManager()
+            card.addView(settingsRow(
+                if (granted) "🔓" else "🔒",
+                getString(R.string.settings_permission),
+                getString(if (granted) R.string.mine_perm_granted else R.string.mine_perm_denied),
+            ) {
+                if (!Environment.isExternalStorageManager()) {
+                    runCatching {
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                Uri.parse("package:$packageName"),
+                            ),
+                        )
+                    }
                 }
-            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        }
-        langCard.addView(langRow)
-        page.addView(langCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(16) })
-
-        // 外观：日间 / 夜间 / 跟随系统（切换即重建前台页面）
-        val themeCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(UiTheme.card())
-            setPadding(28, 24, 28, 24)
-        }
-        themeCard.addView(TextView(this).apply {
-            text = getString(R.string.mine_theme)
-            textSize = 14f
-            setPadding(0, 0, 0, 12)
+            })
+            card.addView(divider())
+            card.addView(settingsRow("🛡️", getString(R.string.settings_privacy), getString(R.string.settings_privacy_desc)) { })
         })
-        val themeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val savedMode = ThemeStore.saved(this)
-        listOf(
-            getString(R.string.theme_light) to ThemeStore.MODE_LIGHT,
-            getString(R.string.theme_dark) to ThemeStore.MODE_DARK,
-            getString(R.string.theme_system) to ThemeStore.MODE_SYSTEM,
-        ).forEach { (label, mode) ->
-            themeRow.addView(Button(this).apply {
-                text = if (savedMode == mode) "✓ $label" else label
-                textSize = 13f
-                setOnClickListener { ThemeStore.set(applicationContext, mode) }
-            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        return scroll
+    }
+
+    /** M3 卡片：圆角 20dp、无阴影、主题表面色。 */
+    private fun m3Card(content: (LinearLayout) -> Unit): com.google.android.material.card.MaterialCardView {
+        val card = com.google.android.material.card.MaterialCardView(this).apply {
+            radius = dp(20).toFloat()
+            cardElevation = 0f
+            strokeWidth = 0
+            setCardBackgroundColor(UiTheme.card())
         }
-        themeCard.addView(themeRow)
-        page.addView(themeCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(16) })
-        return page
+        val inner = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(18), dp(20), dp(18))
+        }
+        content(inner)
+        card.addView(inner)
+        return card
+    }
+
+    private fun sectionLabel(text: String) = TextView(this).apply {
+        this.text = text
+        textSize = 13f
+        setTypeface(typeface, android.graphics.Typeface.BOLD)
+        setTextColor(UiTheme.textSecondary())
+        setPadding(8, dp(22), 8, dp(8))
+    }
+
+    private fun divider() = View(this).apply {
+        setBackgroundColor(if (UiTheme.isNight()) 0xFF2A2F36.toInt() else 0xFFE9EBEE.toInt())
+    }.also { v ->
+        v.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
+            topMargin = dp(14)
+            bottomMargin = dp(2)
+        }
+    }
+
+    /** 设置行：图标 + 标题 + 右对齐值（onClick 为空则静态展示）。 */
+    private fun settingsRow(icon: String, title: String, value: String, onClick: (() -> Unit)? = null): View =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(12), 0, dp(12))
+            if (onClick != null) {
+                val out = android.util.TypedValue()
+                theme.resolveAttribute(android.R.attr.selectableItemBackground, out, true)
+                setBackgroundResource(out.resourceId)
+                setOnClickListener { onClick() }
+            }
+            addView(TextView(this@MainActivity).apply {
+                text = icon; textSize = 18f; setPadding(0, 0, dp(14), 0)
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = title; textSize = 15f
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            if (value.isNotEmpty()) addView(TextView(this@MainActivity).apply {
+                text = value
+                textSize = 13f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setTextColor(UiTheme.textSecondary())
+            })
+        }
+
+    /** M3 分段按钮组（单选）。 */
+    private fun segmentedGroup(options: List<Pair<String, String>>, checkedValue: String, onSelect: (String) -> Unit): com.google.android.material.button.MaterialButtonToggleGroup {
+        val group = com.google.android.material.button.MaterialButtonToggleGroup(this).apply {
+            isSingleSelection = true
+            setSelectionRequired(true)
+        }
+        options.forEach { (label, value) ->
+            val btn = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                text = label
+                textSize = 13f
+                isCheckable = true
+                id = View.generateViewId()
+                insetTop = 0; insetBottom = 0
+            }
+            group.addView(btn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            if (value == checkedValue) group.check(btn.id)
+            btn.setOnClickListener { if (group.checkedButtonId == btn.id) onSelect(value) }
+        }
+        return group
     }
 
     /** 存储卡 */
