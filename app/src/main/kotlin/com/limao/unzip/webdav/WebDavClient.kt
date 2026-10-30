@@ -58,11 +58,13 @@ class WebDavClient(private val base: String, private val user: String?, private 
         }
     }
 
-    /** 下载到本地文件，返回字节数。 */
-    fun download(remotePath: String, out: File): Long {
+    /** 下载到本地文件，返回字节数。onProgress(bytesDone, totalBytes)（total 未知时为 -1）。 */
+    fun download(remotePath: String, out: File, onProgress: (Long, Long) -> Unit = { _, _ -> }): Long {
         request(joinUrl(remotePath), "GET", null).use { resp ->
             if (!resp.isSuccessful) throw RuntimeException("HTTP ${resp.code}")
+            val contentLength = resp.body?.contentLength() ?: -1L
             var total = 0L
+            var lastReport = 0L
             resp.body!!.byteStream().use { ins ->
                 FileOutputStream(out).use { fos ->
                     val buf = ByteArray(64 * 1024)
@@ -71,9 +73,15 @@ class WebDavClient(private val base: String, private val user: String?, private 
                         if (n < 0) break
                         fos.write(buf, 0, n)
                         total += n
+                        // 进度回调 200ms 节流，避免跨线程刷屏
+                        if (total - lastReport >= 200 * 1024 || (contentLength > 0 && total >= contentLength)) {
+                            lastReport = total
+                            onProgress(total, contentLength)
+                        }
                     }
                 }
             }
+            onProgress(total, contentLength)
             return total
         }
     }

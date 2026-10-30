@@ -17,6 +17,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.limao.unzip.R
 import com.limao.unzip.engine.error.ErrorCatalog
+import android.os.Environment
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -36,8 +37,13 @@ class WebDavActivity : AppCompatActivity() {
     private var client: WebDavClient? = null
     private var currentPath = "/"
     private val dfmt = SimpleDateFormat("yyyy/M/d", Locale.getDefault())
+
+    /** 下载落点：公共 Download/PolarisWebDav/（所有文件管理器可见，直接可用）。 */
     private val downloadDir by lazy {
-        File(getExternalFilesDir(null), "webdav-inbox").apply { mkdirs() }
+        File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "PolarisWebDav",
+        ).apply { mkdirs() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -267,24 +273,86 @@ class WebDavActivity : AppCompatActivity() {
     private fun confirmDownload(e: WebDavClient.DavEntry) {
         AlertDialog.Builder(this)
             .setTitle(e.name)
-            .setMessage("${ErrorCatalog.formatBytes(e.size)}\n${getString(R.string.webdav_download_started)}${downloadDir.absolutePath}")
+            .setMessage(
+                "${ErrorCatalog.formatBytes(e.size)}\n${getString(R.string.webdav_download_started)}" +
+                    "Download/PolarisWebDav/${e.name}",
+            )
             .setPositiveButton("OK") { _, _ -> downloadEntry(e) }
             .setNegativeButton(getString(R.string.btn_cancel), null)
             .show()
     }
 
+    /** 下载：公共目录 + 重名自动加序号 + 进度对话框 + 完成后扫描进媒体库。 */
     private fun downloadEntry(e: WebDavClient.DavEntry) {
         val c = client ?: return
-        val out = File(downloadDir, e.name)
+        val base = e.name.substringBeforeLast('.')
+        val ext = e.name.substringAfterLast('.', "")
+        var out = File(downloadDir, e.name)
+        var n = 1
+        while (out.exists()) {
+            out = if (ext.isEmpty()) File(downloadDir, "$base (${n++})") else File(downloadDir, "$base (${n++}).$ext")
+        }
+
+        // 进度对话框（未知大小时先不确定态）
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), dp(8))
+        }
+        val progressText = TextView(this).apply {
+            text = "0 KB"; textSize = 13f
+            setTextColor(UiTheme.textSecondary())
+        }
+        val bar = com.google.android.material.progressindicator.LinearProgressIndicator(this).apply {
+            trackCornerRadius = dp(4)
+            max = 100
+            setIndeterminate(true)
+        }
+        box.addView(progressText)
+        box.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10)).apply { topMargin = dp(10) })
+        val dlg = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.webdav_downloading))
+            .setView(box)
+            .setCancelable(false)
+            .show()
+
         Thread {
-            val r = runCatching { c.download(currentPath + e.name, out) }
+            val result = runCatching {
+                c.download(currentPath + e.name, out) { done, total ->
+                    runOnUiThread {
+                        if (total > 0) {
+                            bar.setIndeterminate(false)
+                            bar.setProgress((done * 100 / total).toInt().coerceIn(0, 100), true)
+                            progressText.text = "${ErrorCatalog.formatBytes(done)} / ${ErrorCatalog.formatBytes(total)}"
+                        } else {
+                            progressText.text = ErrorCatalog.formatBytes(done)
+                        }
+                    }
+                }
+            }
             runOnUiThread {
-                Toast.makeText(
-                    this,
-                    if (r.isSuccess) getString(R.string.webdav_download_done) + out.name
-                    else getString(R.string.op_failed),
-                    Toast.LENGTH_LONG,
-                ).show()
+                dlg.dismiss()
+                if (result.isSuccess) {
+                    // 扫描进媒体库：最近文件/相册立即可见
+                    android.media.MediaScannerConnection.scanFile(
+                        this,
+                        arrayOf(out.absolutePath),
+                        null,
+                        null,
+                    )
+                    Toast.makeText(
+                        this,
+                        getString(R.string.webdav_download_done) + "Download/PolarisWebDav/${out.name}",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                } else {
+                    // 失败原因透出（HTTP 码/网络错误），残留半截文件清理
+                    out.delete()
+                    Toast.makeText(
+                        this,
+                        getString(R.string.op_failed) + "：${result.exceptionOrNull()?.message ?: ""}",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
             }
         }.start()
     }
