@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import com.limao.unzip.engine.api.CreateFormat
 import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
@@ -66,7 +67,7 @@ class MainActivity : AppCompatActivity() {
     private var homeBuilt = false
 
     companion object {
-        /** 当前标签（0=文件 1=设置），进程内静态：主题/语言切换导致 Activity 重建后保持。 */
+        /** 当前标签（0=文件 1=工具 2=设置），进程内静态：主题/语言切换导致 Activity 重建后保持。 */
         @Volatile
         var lastTab = 0
     }
@@ -116,6 +117,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- 主页骨架 ----------
     private var filesPage: View? = null
     private var minePage: View? = null
+    private var toolsPage: View? = null
     private var tabViews: List<TextView> = emptyList()
 
     private fun showHome() {
@@ -127,9 +129,11 @@ class MainActivity : AppCompatActivity() {
         }
         val content = android.widget.FrameLayout(this)
         filesPage = buildFilesPage()
+        toolsPage = buildToolsPage()
         minePage = buildMinePage()
         val match = android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         content.addView(filesPage, match)
+        content.addView(toolsPage, match)
         content.addView(minePage, match)
         root.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
@@ -137,7 +141,11 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(UiTheme.card())
             setPadding(0, 10, 0, 16)
         }
-        val tabs = listOf("📁" to getString(R.string.tab_files), "🛠️" to getString(R.string.tab_mine))
+        val tabs = listOf(
+            "📁" to getString(R.string.tab_files),
+            "🧰" to getString(R.string.tab_tools),
+            "🛠️" to getString(R.string.tab_mine),
+        )
         tabViews = tabs.mapIndexed { i, (icon, label) ->
             TextView(this).apply {
                 gravity = Gravity.CENTER
@@ -157,7 +165,8 @@ class MainActivity : AppCompatActivity() {
     private fun showTab(index: Int) {
         lastTab = index
         filesPage?.visibility = if (index == 0) View.VISIBLE else View.GONE
-        minePage?.visibility = if (index == 1) View.VISIBLE else View.GONE
+        toolsPage?.visibility = if (index == 1) View.VISIBLE else View.GONE
+        minePage?.visibility = if (index == 2) View.VISIBLE else View.GONE
         tabViews.forEachIndexed { i, tv -> tv.setTextColor(if (i == index) UiTheme.accent() else UiTheme.textSecondary()) }
     }
 
@@ -348,6 +357,138 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(item.name)
             .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
+            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .show()
+    }
+
+    /** 工具页：解压与新建压缩入口（M3 卡片）。 */
+    private fun buildToolsPage(): View {
+        val scroll = androidx.core.widget.NestedScrollView(this).apply {
+            setBackgroundColor(UiTheme.pageBg())
+            isFillViewport = true
+        }
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 48, 24, 24)
+        }
+        scroll.addView(page, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+
+        page.addView(TextView(this).apply {
+            text = getString(R.string.tab_tools)
+            textSize = 22f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(8, 8, 8, 4)
+        })
+        page.addView(TextView(this).apply {
+            text = getString(R.string.tools_subtitle)
+            textSize = 12f
+            setTextColor(UiTheme.textSecondary())
+            setPadding(8, 0, 8, 8)
+        })
+
+        // ---- 解压 ----
+        page.addView(sectionLabel(getString(R.string.tools_section_extract)))
+        page.addView(m3Card { card ->
+            card.addView(settingsRow(
+                "📦", getString(R.string.tools_browse_archives), getString(R.string.tools_browse_archives_desc),
+            ) {
+                startActivity(
+                    Intent(this@MainActivity, com.limao.unzip.files.FileListActivity::class.java)
+                        .putExtra(com.limao.unzip.files.FileListActivity.EXTRA_MODE, "archives"),
+                )
+            })
+        })
+
+        // ---- 压缩 ----
+        page.addView(sectionLabel(getString(R.string.tools_section_compress)))
+        page.addView(m3Card { card ->
+            card.addView(settingsRow(
+                "📂", getString(R.string.tools_compress_folder), getString(R.string.tools_compress_folder_desc),
+            ) { showFolderPicker { dir -> askCompressFormat(dir) } })
+            card.addView(divider())
+            card.addView(settingsRow(
+                "🗂️", getString(R.string.tools_compress_multi), getString(R.string.tools_compress_multi_desc),
+            ) {
+                startActivity(
+                    Intent(this@MainActivity, com.limao.unzip.files.FileListActivity::class.java).apply {
+                        putExtra(com.limao.unzip.files.FileListActivity.EXTRA_MODE, "browser")
+                        putExtra(com.limao.unzip.files.FileListActivity.EXTRA_PATH, Environment.getExternalStorageDirectory().absolutePath)
+                    },
+                )
+            })
+        })
+        return scroll
+    }
+
+    /** 选择压缩格式后入队后台压缩（产物固定落在 Download/）。 */
+    private fun askCompressFormat(dir: File) {
+        val formats = listOf(
+            CreateFormat.ZIP to "ZIP",
+            CreateFormat.SEVEN_Z to "7Z",
+            CreateFormat.TAR_GZ to "TAR.GZ",
+        )
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.tools_pick_format, dir.name))
+            .setItems(formats.map { it.second }.toTypedArray()) { _, which ->
+                val out = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    "${dir.name}.${formats[which].first.extension}",
+                )
+                val request = androidx.work.OneTimeWorkRequestBuilder<com.limao.unzip.worker.CompressWorker>()
+                    .setInputData(
+                        androidx.work.workDataOf(
+                            com.limao.unzip.worker.CompressWorker.KEY_SRC_PATH to dir.absolutePath,
+                            com.limao.unzip.worker.CompressWorker.KEY_OUT_PATH to out.absolutePath,
+                            com.limao.unzip.worker.CompressWorker.KEY_FORMAT to formats[which].first.name,
+                        ),
+                    )
+                    .build()
+                androidx.work.WorkManager.getInstance(this).enqueue(request)
+                toast(getString(R.string.toast_compressing, out.name))
+            }
+            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .show()
+    }
+
+    /** 轻量目录选择器：目录列表 + 上一级 + 选中当前目录。 */
+    private fun showFolderPicker(onPick: (File) -> Unit) {
+        var cur = Environment.getExternalStorageDirectory()
+        val titleView = TextView(this).apply {
+            textSize = 13f
+            setTextColor(UiTheme.textSecondary())
+            setPadding(dp(24), dp(18), dp(24), dp(8))
+        }
+        val list = ListView(this).apply { dividerHeight = 0 }
+        fun refresh() {
+            titleView.text = getString(R.string.tools_pick_folder) + "\n" + cur.absolutePath
+            val dirs = runCatching {
+                cur.listFiles { f -> f.isDirectory && !f.name.startsWith(".") }?.sortedBy { it.name.lowercase() }
+            }.getOrNull() ?: emptyList()
+            list.adapter = object : android.widget.BaseAdapter() {
+                override fun getCount(): Int = dirs.size + 1
+                override fun getItem(position: Int): Any? = if (position == 0) null else dirs[position - 1]
+                override fun getItemId(position: Int): Long = position.toLong()
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val tv = (convertView as? TextView) ?: TextView(this@MainActivity).apply {
+                        textSize = 15f
+                        setPadding(dp(24), dp(14), dp(24), dp(14))
+                    }
+                    tv.text = if (position == 0) "↩︎  .." else "📁 " + dirs[position - 1].name
+                    return tv
+                }
+            }
+            list.setOnItemClickListener { _, _, position, _ ->
+                cur = if (position == 0) (cur.parentFile ?: cur) else dirs[position - 1]
+                refresh()
+            }
+        }
+        refresh()
+        val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        container.addView(titleView)
+        container.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(380)))
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setView(container)
+            .setPositiveButton(getString(R.string.tools_pick_this)) { _, _ -> onPick(cur) }
             .setNegativeButton(getString(R.string.btn_cancel), null)
             .show()
     }
