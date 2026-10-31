@@ -100,8 +100,51 @@ class WebDavActivity : AppCompatActivity() {
         setContentView(root)
 
         // 自动连接：已保存凭证直接使用（后台网盘打开即读，无需手动连接）
+        // 无保存连接时自动探测本机桥接服务（Alist 等默认端口 5244），发现即自动填入/连接
         val savedUrl = getSharedPreferences("webdav", MODE_PRIVATE).getString("url", null)
-        if (savedUrl.isNullOrEmpty()) showForm() else autoConnect()
+        if (savedUrl.isNullOrEmpty()) {
+            showForm()
+            probeBridges()
+        } else autoConnect()
+    }
+
+    /** 桥接自动发现：探测本机/宿主机常见 WebDAV 桥接端口（Alist 默认 5244）。
+     *  发现无需认证的服务（207/200）→ 自动填入并连接；需要认证（401）→ 只自动填入地址。 */
+    private fun probeBridges() {
+        Thread {
+            val candidates = listOf(
+                "http://127.0.0.1:5244/dav/",
+                "http://127.0.0.1:5244/",
+                "http://10.0.2.2:5244/dav/",
+            )
+            val shortClient = okhttp3.OkHttpClient.Builder()
+                .connectTimeout(600, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .readTimeout(1200, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .build()
+            for (url in candidates) {
+                val code = runCatching {
+                    shortClient.newCall(
+                        okhttp3.Request.Builder().url(url).method("OPTIONS", null).build()
+                    ).execute().use { it.code }
+                }.getOrDefault(-1)
+                if (code == -1) continue // 端口无服务，探测下一个
+                runOnUiThread {
+                    if (code == 200 || code == 207) {
+                        getSharedPreferences("webdav", MODE_PRIVATE).edit().putString("url", url).apply()
+                        statusView.visibility = View.VISIBLE
+                        statusView.text = getString(R.string.webdav_bridge_found, url)
+                        autoConnect()
+                    } else {
+                        statusView.visibility = View.VISIBLE
+                        statusView.text = getString(R.string.webdav_bridge_needauth, url)
+                        showForm()
+                        formCard.findViewWithTag<EditText>("url")?.setText(url)
+                    }
+                }
+                return@Thread
+            }
+            runOnUiThread { showForm() }
+        }.start()
     }
 
     private fun buildForm(): LinearLayout {

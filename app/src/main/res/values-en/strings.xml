@@ -33,6 +33,9 @@
     <string name="webdav_connect">Connect</string>
     <string name="webdav_list_error">Connect failed. Check URL/account/network</string>
     <string name="webdav_download_started">Will save to</string>
+    <string name="webdav_downloading">Downloading</string>
+    <string name="webdav_bridge_found">Bridge found, connected automatically: %1$s</string>
+    <string name="webdav_bridge_needauth">Bridge found (finish one-time account authorization in it), address filled: %1$s</string>
     <string name="webdav_download_done">Downloaded: </string>
     <string name="webdav_enter_path">Path to browse (empty = root)</string>
     <string name="recent_archives">Recent archives</string>
