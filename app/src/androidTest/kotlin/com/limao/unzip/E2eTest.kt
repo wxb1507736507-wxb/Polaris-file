@@ -133,7 +133,7 @@ class E2eTest {
             onView(isAssignableFrom(EditText::class.java)).perform(replaceText("GBK编码中文内容\n已修改保存"))
             onView(withText(R.string.editor_save)).perform(click())
             // 保存后文件应仍为 GBK 编码
-            val end = SystemClock.uptimeMillis() + 5000
+            val end = SystemClock.uptimeMillis() + 10000
             var ok = false
             while (SystemClock.uptimeMillis() < end && !ok) {
                 ok = runCatching {

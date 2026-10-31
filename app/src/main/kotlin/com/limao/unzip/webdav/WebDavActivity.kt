@@ -108,42 +108,49 @@ class WebDavActivity : AppCompatActivity() {
         } else autoConnect()
     }
 
-    /** 桥接自动发现：探测本机/宿主机常见 WebDAV 桥接端口（Alist 默认 5244）。
+    /** 桥接自动发现：并行探测本机/宿主机常见 WebDAV 桥接端口（Alist 默认 5244）。
      *  发现无需认证的服务（207/200）→ 自动填入并连接；需要认证（401）→ 只自动填入地址。 */
     private fun probeBridges() {
-        Thread {
-            val candidates = listOf(
-                "http://127.0.0.1:5244/dav/",
-                "http://127.0.0.1:5244/",
-                "http://10.0.2.2:5244/dav/",
-            )
-            val shortClient = okhttp3.OkHttpClient.Builder()
-                .connectTimeout(600, java.util.concurrent.TimeUnit.MILLISECONDS)
-                .readTimeout(1200, java.util.concurrent.TimeUnit.MILLISECONDS)
-                .build()
-            for (url in candidates) {
+        val candidates = listOf(
+            "http://127.0.0.1:5244/dav/",
+            "http://127.0.0.1:5244/",
+            "http://10.0.2.2:5244/dav/",
+        )
+        val shortClient = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(600, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .readTimeout(1200, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .build()
+        val first = java.util.concurrent.atomic.AtomicReference<String>()
+        val latch = java.util.concurrent.CountDownLatch(candidates.size)
+        for (url in candidates) {
+            Thread {
                 val code = runCatching {
                     shortClient.newCall(
                         okhttp3.Request.Builder().url(url).method("OPTIONS", null).build()
                     ).execute().use { it.code }
                 }.getOrDefault(-1)
-                if (code == -1) continue // 端口无服务，探测下一个
-                runOnUiThread {
-                    if (code == 200 || code == 207) {
-                        getSharedPreferences("webdav", MODE_PRIVATE).edit().putString("url", url).apply()
-                        statusView.visibility = View.VISIBLE
-                        statusView.text = getString(R.string.webdav_bridge_found, url)
-                        autoConnect()
-                    } else {
-                        statusView.visibility = View.VISIBLE
-                        statusView.text = getString(R.string.webdav_bridge_needauth, url)
-                        showForm()
-                        formCard.findViewWithTag<EditText>("url")?.setText(url)
-                    }
+                // 只取第一个有响应的候选（200/207 可直连；401 需授权仅填入）
+                if (code != -1 && first.compareAndSet(null, "$code|$url")) latch.countDown() else latch.countDown()
+            }.start()
+        }
+        Thread {
+            latch.await()
+            val hit = first.get() ?: return@Thread
+            val code = hit.substringBefore("|").toInt()
+            val url = hit.substringAfter("|")
+            runOnUiThread {
+                if (code == 200 || code == 207) {
+                    getSharedPreferences("webdav", MODE_PRIVATE).edit().putString("url", url).apply()
+                    statusView.visibility = View.VISIBLE
+                    statusView.text = getString(R.string.webdav_bridge_found, url)
+                    autoConnect()
+                } else {
+                    statusView.visibility = View.VISIBLE
+                    statusView.text = getString(R.string.webdav_bridge_needauth, url)
+                    showForm()
+                    formCard.findViewWithTag<EditText>("url")?.setText(url)
                 }
-                return@Thread
             }
-            runOnUiThread { showForm() }
         }.start()
     }
 
@@ -218,20 +225,23 @@ class WebDavActivity : AppCompatActivity() {
         pathView.text = "WebDAV $currentPath"
         statusView.visibility = View.VISIBLE
         statusView.text = getString(R.string.preparing)
-        listView.adapter = emptyAdapter()
+        // 加载期间保留旧列表内容（仅首次为空才显示空态），避免闪烁与"卡顿感"
         Thread {
+            val started = android.os.SystemClock.uptimeMillis()
             val list = runCatching { c.list(currentPath) }
                 .getOrElse { t ->
                     android.util.Log.e("WebDavBrowse", "EXC path=$currentPath", t)
                     emptyList()
                 }
             val failed = list.isEmpty()
-            android.util.Log.e("WebDavBrowse", "RESULT failed=$failed size=${list.size} path=$currentPath")
+            android.util.Log.e("WebDavBrowse", "RESULT failed=$failed size=${list.size} ms=${android.os.SystemClock.uptimeMillis() - started} path=$currentPath")
             runOnUiThread {
                 statusView.visibility = if (failed) View.VISIBLE else View.GONE
                 if (!failed) {
                     statusView.text = ""
                     listView.adapter = buildListAdapter(c, list)
+                } else if ((listView.adapter as? BaseAdapter)?.count == 0 || listView.adapter == null) {
+                    listView.adapter = emptyAdapter()
                 }
             }
         }.start()
