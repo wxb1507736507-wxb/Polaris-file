@@ -34,6 +34,8 @@
     <string name="webdav_list_error">连接失败，请检查地址/账号/网络</string>
     <string name="webdav_download_started">将下载到</string>
     <string name="webdav_downloading">正在下载</string>
+    <string name="webdav_bridge_found">发现桥接服务，已自动连接：%1$s</string>
+    <string name="webdav_bridge_needauth">发现桥接服务（请在其中完成一次网盘授权），地址已自动填入：%1$s</string>
     <string name="webdav_download_done">下载完成：</string>
     <string name="webdav_enter_path">进入路径浏览（可选，留空为根）</string>
     <string name="recent_archives">最近压缩包</string>
