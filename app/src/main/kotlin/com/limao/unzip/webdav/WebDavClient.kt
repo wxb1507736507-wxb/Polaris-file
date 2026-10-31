@@ -18,11 +18,18 @@ class WebDavClient(private val base: String, private val user: String?, private 
     data class DavEntry(val href: String, val name: String, val isDir: Boolean, val size: Long, val mtime: Long)
 
     private val xmlType = "application/xml".toMediaType()
-    private val http: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .build()
+
+    companion object {
+        // 全局共享连接池/HTTP2 复用：多次浏览与并发请求不重复握手
+        private val sharedHttp: OkHttpClient = OkHttpClient.Builder()
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .connectionPool(okhttp3.ConnectionPool(5, 5, TimeUnit.MINUTES))
+            .build()
+    }
+
+    private val http: OkHttpClient = sharedHttp
 
     private fun request(url: String, method: String, body: ByteArray? = null): okhttp3.Response {
         val b = okhttp3.Request.Builder().url(url)
@@ -67,7 +74,7 @@ class WebDavClient(private val base: String, private val user: String?, private 
             var lastReport = 0L
             resp.body!!.byteStream().use { ins ->
                 FileOutputStream(out).use { fos ->
-                    val buf = ByteArray(64 * 1024)
+                    val buf = ByteArray(256 * 1024)
                     while (true) {
                         val n = ins.read(buf)
                         if (n < 0) break

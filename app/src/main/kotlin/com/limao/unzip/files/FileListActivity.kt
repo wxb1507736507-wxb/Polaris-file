@@ -600,108 +600,161 @@ class FileListActivity : AppCompatActivity() {
         override fun getItemId(position: Int) = position.toLong()
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val e = shown[position]
-            return if (dualMode) buildDualCell(e) else buildRow(e)
+            return if (dualMode) {
+                val h = (convertView?.tag as? DualHolder) ?: buildDualHolder().also { it.cell.tag = it }
+                bindDual(h, e)
+                h.cell
+            } else {
+                val h = (convertView?.tag as? RowHolder) ?: buildRowHolder().also { it.row.tag = it }
+                bindRow(h, e)
+                h.row
+            }
         }
     }
 
-    /** 单列行（QQ浏览器样式）。 */
-    private fun buildRow(e: Entry): View {
-        val sel = e.path != null && selection.containsKey(e.path)
+    // ---------- 视图回收（行/格构建一次，滚动只重绑内容） ----------
+
+    private inner class RowHolder(
+        val row: LinearLayout, val emoji: TextView, val img: android.widget.ImageView,
+        val badge: TextView, val name: TextView, val sub: TextView,
+    )
+
+    private fun buildRowHolder(): RowHolder {
+        val emoji = TextView(this).apply { gravity = Gravity.CENTER }
+        val img = android.widget.ImageView(this).apply {
+            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+            visibility = View.GONE
+        }
+        val badge = TextView(this).apply {
+            textSize = 12f; gravity = Gravity.CENTER; setTextColor(0xFFFFFFFF.toInt())
+            visibility = View.GONE
+            layoutParams = android.widget.FrameLayout.LayoutParams(dp(18), dp(18), Gravity.BOTTOM or Gravity.END)
+        }
+        val wrap = android.widget.FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(50), dp(50))
+            setBackgroundResource(R.drawable.archive_icon_bg)
+            addView(emoji, android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(img, android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(badge)
+        }
+        val name = TextView(this).apply {
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+        }
+        val sub = TextView(this).apply { textSize = 12f; setTextColor(UiTheme.textSecondary()) }
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(if (sel) UiTheme.chipBg() else UiTheme.card())
             setPadding(28, 22, 28, 22)
             isHapticFeedbackEnabled = false
             fitsSystemWindows = false
         }
-        row.addView(buildIcon(e, dp(50), 24f, sel, inSelect))
+        row.addView(wrap)
         val mid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        mid.addView(TextView(this).apply {
-            text = e.name; textSize = 15f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
-        })
-        mid.addView(TextView(this).apply {
-            text = subOf(e); textSize = 12f; setTextColor(UiTheme.textSecondary())
-        })
+        mid.addView(name)
+        mid.addView(sub)
         row.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = 22 })
-        row.setOnClickListener { if (inSelect && e.path != null) toggleSelect(e) else onEntry(e) }
-        row.setOnLongClickListener { if (e.path != null) toggleSelect(e) else showOps(e); true }
-        return row
+        return RowHolder(row, emoji, img, badge, name, sub)
     }
 
-    /** 图标区：有缩略图键时异步加载封面，否则显示 emoji。 */
-    /** 图标区：封面常驻（多选选中也不消失），多选模式叠加右上角勾选角标。 */
-    private fun buildIcon(e: Entry, sizePx: Int, emojiSize: Float, sel: Boolean = false, selecting: Boolean = false): View {
-        val wrap = android.widget.FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
-            setBackgroundResource(R.drawable.archive_icon_bg)
+    private fun bindRow(h: RowHolder, e: Entry) {
+        val sel = e.path != null && selection.containsKey(e.path)
+        h.row.setBackgroundColor(if (sel) UiTheme.chipBg() else UiTheme.card())
+        h.emoji.text = e.icon
+        h.emoji.visibility = View.VISIBLE
+        h.name.text = e.name
+        h.sub.text = subOf(e)
+        if (inSelect && e.path != null) {
+            h.badge.text = if (sel) "✓" else ""
+            h.badge.setBackgroundResource(if (sel) R.drawable.badge_selected else R.drawable.badge_normal)
+            h.badge.visibility = View.VISIBLE
+        } else {
+            h.badge.visibility = View.GONE
         }
-        val emoji = TextView(this).apply {
-            text = e.icon
-            textSize = emojiSize; gravity = Gravity.CENTER
-            layoutParams = android.widget.FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
-            )
+        val thumbPath = e.thumbKey?.let { e.path } ?: e.path?.takeIf { Thumbs.hasCover(e.name) }
+        if (thumbPath != null || e.thumbKey != null) {
+            Thumbs.loadInto(this, e.thumbKey ?: e.path ?: e.name, thumbPath, h.img)
+        } else {
+            h.img.visibility = View.GONE
         }
-        wrap.addView(emoji)
+        h.row.setOnClickListener { if (inSelect && e.path != null) toggleSelect(e) else onEntry(e) }
+        h.row.setOnLongClickListener { if (e.path != null) toggleSelect(e) else showOps(e); true }
+    }
+
+    private inner class DualHolder(
+        val cell: LinearLayout, val emoji: TextView, val img: android.widget.ImageView,
+        val badge: TextView, val name: TextView, val sub: TextView,
+    )
+
+    private fun buildDualHolder(): DualHolder {
+        val emoji = TextView(this).apply { gravity = Gravity.CENTER }
         val img = android.widget.ImageView(this).apply {
             scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
             visibility = View.GONE
-            layoutParams = android.widget.FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
-            )
         }
-        wrap.addView(img)
-        // 封面加载：优先 thumbKey（MediaStore），否则用 path（文件系统扫描的图片/视频）
-        val thumbPath = e.thumbKey?.let { k ->
-            // MediaStore 键 → 从 Entry.path 获取实际文件路径
-            e.path
-        } ?: e.path?.takeIf { Thumbs.hasCover(e.name) }
-        if (thumbPath != null || e.thumbKey != null) {
-            val key = e.thumbKey ?: e.path ?: e.name
-            Thumbs.loadInto(this, key, thumbPath, img)
+        val badge = TextView(this).apply {
+            textSize = 12f; gravity = Gravity.CENTER; setTextColor(0xFFFFFFFF.toInt())
+            visibility = View.GONE
+            layoutParams = android.widget.FrameLayout.LayoutParams(dp(18), dp(18), Gravity.BOTTOM or Gravity.END)
         }
-        if (selecting && e.path != null) {
-            val badge = TextView(this).apply {
-                text = if (sel) "✓" else ""
-                textSize = 12f; gravity = Gravity.CENTER; setTextColor(0xFFFFFFFF.toInt())
-                setBackgroundResource(if (sel) R.drawable.badge_selected else R.drawable.badge_normal)
-                visibility = View.VISIBLE
-                layoutParams = android.widget.FrameLayout.LayoutParams(dp(18), dp(18), Gravity.BOTTOM or Gravity.END)
-            }
-            wrap.addView(badge)
+        val wrap = android.widget.FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(36), dp(36))
+            addView(emoji, android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(img, android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(badge)
         }
-        return wrap
-    }
-
-    /** 双列格（MT 管理器样式）。 */
-    private fun buildDualCell(e: Entry): View {
-        val sel = e.path != null && selection.containsKey(e.path)
+        val name = TextView(this).apply {
+            textSize = 13f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+        }
+        val sub = TextView(this).apply {
+            textSize = 11f; setTextColor(UiTheme.textSecondary()); maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
         val cell = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundResource(R.drawable.dual_cell_bg)
-            if (sel) setBackgroundColor(UiTheme.chipBg())
             setPadding(dp(14), dp(12), dp(14), dp(12))
             isHapticFeedbackEnabled = false
         }
-        cell.addView(buildIcon(e, dp(36), 20f, sel, inSelect))
+        cell.addView(wrap)
         val mid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        mid.addView(TextView(this).apply {
-            text = e.name; textSize = 13f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
-        })
-        mid.addView(TextView(this).apply {
-            text = subOf(e); textSize = 11f; setTextColor(UiTheme.textSecondary()); maxLines = 1
-            ellipsize = android.text.TextUtils.TruncateAt.END
-        })
+        mid.addView(name)
+        mid.addView(sub)
         cell.addView(mid, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = dp(12) })
-        cell.setOnClickListener { if (inSelect && e.path != null) toggleSelect(e) else onEntry(e) }
-        cell.setOnLongClickListener { if (e.path != null) toggleSelect(e) else showOps(e); true }
-        return cell
+        return DualHolder(cell, emoji, img, badge, name, sub)
+    }
+
+    private fun bindDual(h: DualHolder, e: Entry) {
+        val sel = e.path != null && selection.containsKey(e.path)
+        if (sel) h.cell.setBackgroundColor(UiTheme.chipBg())
+        else h.cell.setBackgroundResource(R.drawable.dual_cell_bg)
+        h.emoji.text = e.icon
+        h.emoji.visibility = View.VISIBLE
+        h.name.text = e.name
+        h.sub.text = subOf(e)
+        if (inSelect && e.path != null) {
+            h.badge.text = if (sel) "✓" else ""
+            h.badge.setBackgroundResource(if (sel) R.drawable.badge_selected else R.drawable.badge_normal)
+            h.badge.visibility = View.VISIBLE
+        } else {
+            h.badge.visibility = View.GONE
+        }
+        val thumbPath = e.thumbKey?.let { e.path } ?: e.path?.takeIf { Thumbs.hasCover(e.name) }
+        if (thumbPath != null || e.thumbKey != null) {
+            Thumbs.loadInto(this, e.thumbKey ?: e.path ?: e.name, thumbPath, h.img)
+        } else {
+            h.img.visibility = View.GONE
+        }
+        h.cell.setOnClickListener { if (inSelect && e.path != null) toggleSelect(e) else onEntry(e) }
+        h.cell.setOnLongClickListener { if (e.path != null) toggleSelect(e) else showOps(e); true }
     }
 
     /** 打开条目：与首页最近文件共用统一分派器（FileOpener），行为完全一致。 */
