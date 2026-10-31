@@ -154,11 +154,21 @@ Polaris File 是一款面向移动办公与日常文件管理场景的 Android �
 | OkHttp 4.12 | WebDAV 网络层 | Apache-2.0 |
 | AndroidX / Material Components | UI 框架 | Apache-2.0 |
 
+## 开源许可
+
+本项目以 **GNU General Public License v3.0（GPL-3.0）** 发布，完整条款见 [LICENSE](LICENSE)。
+
+Copyright (C) 2026 wxb1507736507-wxb
+
+你可以自由使用、修改和分发本项目，但衍生作品须以相同许可开源；本项目不附带任何担保。
+
 ---
 
 ## English Overview
 
 Polaris File is an all-in-one file manager for Android featuring category-based browsing, multi-select batch operations, archive extraction (ZIP / 7z / TAR / TAR.GZ / BZ2 / ZSTD / CPIO / AR / RAR4 / RAR5, including encrypted archives), archive creation (ZIP / 7Z / TAR.GZ), built-in PDF rendering, Office (docx / xlsx / pptx) text preview, a UTF-8 / GBK text editor with atomic save, WizTree-style storage analysis, and full WebDAV cloud-drive support. It ships with a light / dark / follow-system theme and bilingual (Chinese / English) UI. All processing is performed locally — no user data is collected or uploaded.
+
+Licensed under the GNU General Public License v3.0 — see [LICENSE](LICENSE).
 
 ---
 
