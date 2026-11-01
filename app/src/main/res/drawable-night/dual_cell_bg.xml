@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 夜间模式：双列格底色改深色（与 UiTheme.card 夜间值一致） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#1E2126" />
+    <corners android:radius="10dp" />
+</shape>
