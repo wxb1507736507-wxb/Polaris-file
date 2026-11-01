@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#1E1E1E"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#2B2B2B"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="‹"
+            android:textSize="26sp"
+            android:textColor="#DDDDDD"
+            android:paddingRight="24dp" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="16sp"
+            android:textColor="#EEEEEE"
+            android:fontFamily="monospace"
+            android:maxLines="1"
+            android:ellipsize="middle" />
+
+        <TextView
+            android:id="@+id/more"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⋮"
+            android:textSize="22sp"
+            android:textColor="#DDDDDD"
+            android:paddingLeft="16dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/audio_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#EEEEEE"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="middle"
+        android:paddingTop="16dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/audio_artist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textColor="#999999"
+        android:gravity="center"
+        android:maxLines="1"
+        android:paddingTop="4dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/audio_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textColor="#9AA3AC"
+        android:gravity="center"
+        android:maxLines="1"
+        android:paddingTop="8dp"
+        android:visibility="gone" />
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:use_controller="true"
+        app:show_timeout="3000"
+        app:resize_mode="fit"
+        app:surface_type="surface_view"
+        app:show_fastforward_button="false"
+        app:show_rewind_button="false"
+        app:show_previous_button="false"
+        app:show_next_button="false"
+        app:hide_on_touch="true" />
+</LinearLayout>
