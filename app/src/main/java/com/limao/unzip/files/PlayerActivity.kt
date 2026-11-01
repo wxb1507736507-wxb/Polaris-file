@@ -46,6 +46,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var file: File
     private lateinit var seek: SeekBar
     private lateinit var infoText: TextView
+    private lateinit var durTime: TextView
     private lateinit var curTime: TextView
     private lateinit var playBtn: TextView
     private lateinit var surfaceView: SurfaceView
@@ -58,7 +59,7 @@ class PlayerActivity : AppCompatActivity() {
                 val dur = totalDur()
                 if (dur > 0) {
                     seek.max = dur.toInt()
-                    if (seek.max != seek.secondaryProgress) seek.secondaryProgress = seek.max
+                    durTime.text = fmt(dur)
                 }
                 if (pos in 0..seek.max) seek.progress = pos
                 curTime.text = fmt(pos.toLong())
@@ -199,7 +200,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
             })
         }
-        val durTime = TextView(this).apply {
+        durTime = TextView(this).apply {
             text = "0:00"; textSize = 12f; setTextColor(0xFFDDDDDD.toInt())
             setTypeface(android.graphics.Typeface.MONOSPACE)
         }

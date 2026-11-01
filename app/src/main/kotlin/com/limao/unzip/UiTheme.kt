@@ -92,6 +92,9 @@ object UiTheme {
     /** 主题蓝 */
     fun accent() = if (isNight()) 0xFF5FB2EF.toInt() else 0xFF1296DB.toInt()
 
+    /** 底部导航栏底色（M3 surfaceContainer 语义：介于页面与卡片之间的色调层） */
+    fun navBar() = if (isNight()) 0xFF171A1F.toInt() else 0xFFEDF1F5.toInt()
+
     /** 选中底色（浅蓝 / 深蓝） */
     fun chipBg() = if (isNight()) 0xFF17324A.toInt() else 0xFFE3F0FC.toInt()
 }

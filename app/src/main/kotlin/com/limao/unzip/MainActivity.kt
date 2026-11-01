@@ -118,7 +118,9 @@ class MainActivity : AppCompatActivity() {
     private var filesPage: View? = null
     private var minePage: View? = null
     private var toolsPage: View? = null
-    private var tabViews: List<TextView> = emptyList()
+    private val tabPills = ArrayList<android.widget.FrameLayout>()
+    private val tabIcons = ArrayList<TextView>()
+    private val tabLabels = ArrayList<TextView>()
 
     private fun showHome() {
         homeBuilt = true
@@ -137,25 +139,42 @@ class MainActivity : AppCompatActivity() {
         content.addView(minePage, match)
         root.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
+        // M3 导航栏：色调底色 + 选中项胶囊指示器（主色调拓展出的容器色）
         val bottom = LinearLayout(this).apply {
-            setBackgroundColor(UiTheme.card())
-            setPadding(0, 10, 0, 16)
+            setBackgroundColor(UiTheme.navBar())
+            setPadding(0, dp(6), 0, dp(10))
         }
         val tabs = listOf(
             "📁" to getString(R.string.tab_files),
             "🧰" to getString(R.string.tab_tools),
             "🛠️" to getString(R.string.tab_mine),
         )
-        tabViews = tabs.mapIndexed { i, (icon, label) ->
-            TextView(this).apply {
+        tabPills.clear(); tabIcons.clear(); tabLabels.clear()
+        tabs.forEachIndexed { i, (icon, label) ->
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                textSize = 11f
-                setTextColor(if (i == 0) UiTheme.accent() else UiTheme.textSecondary())
-                text = "$icon\n$label"
                 setOnClickListener { showTab(i) }
             }
+            val pill = android.widget.FrameLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(58), dp(30)).apply { gravity = Gravity.CENTER_HORIZONTAL }
+            }
+            val ic = TextView(this).apply {
+                text = icon; textSize = 17f; gravity = Gravity.CENTER
+                layoutParams = android.widget.FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
+                )
+            }
+            pill.addView(ic)
+            val lb = TextView(this).apply {
+                text = label; textSize = 11f; gravity = Gravity.CENTER
+                setPadding(0, dp(2), 0, 0)
+            }
+            cell.addView(pill)
+            cell.addView(lb, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            bottom.addView(cell, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            tabPills.add(pill); tabIcons.add(ic); tabLabels.add(lb)
         }
-        tabViews.forEach { bottom.addView(it, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)) }
         root.addView(bottom, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         setContentView(root)
         showTab(lastTab)
@@ -167,7 +186,18 @@ class MainActivity : AppCompatActivity() {
         filesPage?.visibility = if (index == 0) View.VISIBLE else View.GONE
         toolsPage?.visibility = if (index == 1) View.VISIBLE else View.GONE
         minePage?.visibility = if (index == 2) View.VISIBLE else View.GONE
-        tabViews.forEachIndexed { i, tv -> tv.setTextColor(if (i == index) UiTheme.accent() else UiTheme.textSecondary()) }
+        tabPills.forEachIndexed { i, pill ->
+            val selected = i == index
+            val gd = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = dp(15).toFloat()
+                setColor(if (selected) UiTheme.chipBg() else 0x00000000)
+            }
+            pill.background = gd
+            val fg = if (selected) UiTheme.accent() else UiTheme.textSecondary()
+            tabIcons[i].setTextColor(fg)
+            tabLabels[i].setTextColor(fg)
+        }
     }
 
     /** 文件页：整页滚动（存储卡+宫格+最近文件一起滑，QQ浏览器式丝滑）。 */
