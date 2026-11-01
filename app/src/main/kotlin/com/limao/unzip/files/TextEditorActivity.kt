@@ -37,23 +37,31 @@ class TextEditorActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val path = intent.getStringExtra(EXTRA_PATH) ?: run { finish(); return }
         file = File(path)
+        // 背景跟随应用主题：日间白底黑字，夜间黑底浅字
+        val night = com.limao.unzip.UiTheme.isNight()
+        val bgEditor = if (night) 0xFF1E1E1E.toInt() else 0xFFFFFFFF.toInt()
+        val bgBar = if (night) 0xFF2B2B2B.toInt() else 0xFFF5F6F8.toInt()
+        val fgPrimary = if (night) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt()
+        val fgSecondary = if (night) 0xFFDDDDDD.toInt() else 0xFF1D1B20.toInt()
+        val fgMuted = if (night) 0xFF888888.toInt() else 0xFF666666.toInt()
+        val accent = if (night) 0xFF82AAFF.toInt() else 0xFF1296DB.toInt()
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFF1E1E1E.toInt())
+            setBackgroundColor(bgEditor)
             fitsSystemWindows = true
         }
         val bar = LinearLayout(this).apply {
-            setBackgroundColor(0xFF2B2B2B.toInt())
+            setBackgroundColor(bgBar)
             setPadding(24, 32, 24, 32)
             gravity = Gravity.CENTER_VERTICAL
         }
         bar.addView(TextView(this).apply {
-            text = "‹"; textSize = 26f; setTextColor(0xFFDDDDDD.toInt()); setPadding(0, 0, 28, 0)
+            text = "‹"; textSize = 26f; setTextColor(fgSecondary); setPadding(0, 0, 28, 0)
             setOnClickListener { onBackPressedDispatcher.onBackPressed() }
         })
         titleView = TextView(this).apply {
-            text = file.name; textSize = 16f; setTextColor(0xFFEEEEEE.toInt())
+            text = file.name; textSize = 16f; setTextColor(fgPrimary)
             setTypeface(android.graphics.Typeface.MONOSPACE)
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
@@ -61,15 +69,15 @@ class TextEditorActivity : AppCompatActivity() {
         }
         bar.addView(titleView)
         bar.addView(TextView(this).apply {
-            text = getString(R.string.editor_save); textSize = 15f; setTextColor(0xFF82AAFF.toInt()); setPadding(24, 0, 0, 0)
+            text = getString(R.string.editor_save); textSize = 15f; setTextColor(accent); setPadding(24, 0, 0, 0)
             setOnClickListener { save() }
         })
         root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         edit = EditText(this).apply {
-            setBackgroundColor(0xFF1E1E1E.toInt())
-            setTextColor(0xFFDDDDDD.toInt())
-            setHintTextColor(0xFF666666.toInt())
+            setBackgroundColor(bgEditor)
+            setTextColor(fgSecondary)
+            setHintTextColor(fgMuted)
             textSize = 14f
             setTypeface(android.graphics.Typeface.MONOSPACE)
             gravity = Gravity.TOP
@@ -79,8 +87,8 @@ class TextEditorActivity : AppCompatActivity() {
         root.addView(edit, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         status = TextView(this).apply {
-            textSize = 12f; setTextColor(0xFF888888.toInt())
-            setBackgroundColor(0xFF2B2B2B.toInt())
+            textSize = 12f; setTextColor(fgMuted)
+            setBackgroundColor(bgBar)
             setPadding(20, 12, 20, 12)
         }
         root.addView(status, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))

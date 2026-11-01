@@ -50,7 +50,7 @@ object FileOpener {
                 Intent(activity, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_PATH, path),
             )
 
-            OfficeText.supported(name) && path != null -> openEditor(activity, File(path))
+            OfficeText.supported(name) && path != null -> openOffice(activity, name, path)
 
             FileItems.isTextName(name) && path != null -> openEditor(activity, File(path))
 
@@ -91,6 +91,34 @@ object FileOpener {
         activity.startActivity(
             Intent(activity, TextEditorActivity::class.java).putExtra(TextEditorActivity.EXTRA_PATH, file.absolutePath),
         )
+    }
+
+    private val OFFICE_MIMES = mapOf(
+        "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xlsx" to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "pptx" to "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    )
+
+    /**
+     * Office 文件：优先调起设备上安装的 Office 应用（WPS/微软 Office 等）以正确样式查看；
+     * 设备上没有 Office 应用时，回退到应用内文本提取预览。
+     */
+    fun openOffice(activity: Activity, name: String, path: String) {
+        val mime = OFFICE_MIMES[name.substringAfterLast('.', "").lowercase()]
+        val viewIntent = if (mime != null) {
+            Intent(Intent.ACTION_VIEW).apply {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    activity, "${activity.packageName}.fileprovider", File(path),
+                )
+                setDataAndType(uri, mime)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        } else null
+        if (viewIntent != null && activity.packageManager.resolveActivity(viewIntent, 0) != null) {
+            activity.startActivity(viewIntent)
+        } else {
+            openEditor(activity, File(path))
+        }
     }
 
     /** 压缩包打开：有解压记录先询问（打开目录/重新解压），否则直接解压。首页与分类页共用。 */

@@ -1,17 +1,15 @@
 package com.limao.unzip.files
 
+import android.content.res.Configuration
 import android.media.MediaMetadataRetriever
-import com.limao.unzip.files.player.AudioInfo
-import com.limao.unzip.files.player.use
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -19,108 +17,182 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.limao.unzip.R
+import com.limao.unzip.files.player.AudioInfo
+import com.limao.unzip.files.player.AudioInfoLiveData
+import com.limao.unzip.files.player.Stateful
+import com.limao.unzip.files.player.use
 import java.io.File
 import java.util.Locale
 
 /**
- * 统一播放器（M3 深色）：
- *  - 主引擎 Media3 ExoPlayer：mp4/mov/m4v/webm/mkv/flv/ts/3gp 视频（解码渲染跟随媒体原生帧率，无帧率上限），
- *    mp3/wav/flac/ogg/m4a/aac/opus 音频（仅解码为 PCM 输出，不做任何重编码/DSP，即文件数据的无损播放）。
- *  - 回退引擎平台 MediaPlayer：ExoPlayer 不支持的容器/编码（avi、wma、midi）按设备编解码器尽力播放
- *    （midi 走系统合成器，avi/wma 取决于设备硬件解码器）。
- *  - 视频渲染 SurfaceView，画面比例跟随视频实际尺寸。
+ * 统一播放器（对标设备自带播放器的样式与功能）：
+ *  - 主引擎 Media3 ExoPlayer + PlayerView 标准控件：
+ *      视频 mp4/mov/m4v/mkv/webm/3gp/ts/flv —— 画面比例自动适配（内容完整）、解码渲染跟随媒体原生帧率（无帧率上限）；
+ *      音频 mp3/wav/flac/ogg/m4a/aac/opus —— 解码直出 PCM（不重编码、无 DSP，即文件数据无损播放），
+ *      时间/进度条/播放暂停由 PlayerView 内置（M3E 风格图标），横屏全屏且不中断播放。
+ *  - 回退引擎平台 MediaPlayer：avi/wma/wmv/midi 按设备编解码器尽力播放。
  */
 class PlayerActivity : AppCompatActivity() {
 
     private var exo: ExoPlayer? = null
     private var mp: MediaPlayer? = null
-    private var prepared = false
-    private var userSeeking = false
-    private var isVideo = false
+    private var mpPrepared = false
     private var playbackStarted = false
     private var fallbackTried = false
+    private var usingFallback = false
+    private var isVideo = false
     private lateinit var file: File
-    private lateinit var seek: SeekBar
-    private lateinit var infoText: TextView
-    private lateinit var curTime: TextView
-    private lateinit var playBtn: TextView
-    private lateinit var surfaceView: SurfaceView
+
+    // 回退引擎的简易控件
+    private var mpSeek: SeekBar? = null
+    private var mpCur: TextView? = null
+    private var mpDur: TextView? = null
+    private var mpBtn: TextView? = null
+    private var mpSurface: SurfaceView? = null
     private val ui = Handler(Looper.getMainLooper())
-
-    private val tick = object : Runnable {
-        override fun run() {
-            if (!userSeeking) {
-                val pos = currentPos()
-                val dur = totalDur()
-                if (dur > 0) {
-                    seek.max = dur.toInt()
-                    if (seek.max != seek.secondaryProgress) seek.secondaryProgress = seek.max
-                }
-                if (pos in 0..seek.max) seek.progress = pos
-                curTime.text = fmt(pos.toLong())
-            }
-            ui.postDelayed(this, 500L)
-        }
-    }
-
-    // ---------- 引擎抽象 ----------
-
-    private fun currentPos(): Int = when {
-        exo != null -> exo?.currentPosition?.toInt() ?: 0
-        mp != null -> mp?.currentPosition ?: 0
-        else -> 0
-    }
-
-    private fun totalDur(): Long = when {
-        exo != null -> exo?.duration?.takeIf { it > 0 } ?: 0L
-        mp != null -> mp?.duration?.toLong() ?: 0L
-        else -> 0L
-    }
-
-    private fun playingNow(): Boolean = runCatching {
-        exo?.isPlaying == true || mp?.isPlaying == true
-    }.getOrDefault(false)
-
-    private fun pauseOrResume() {
-        runCatching {
-            if (playingNow()) {
-                exo?.pause(); mp?.pause(); playBtn.text = "▶"
-            } else {
-                exo?.play(); mp?.start(); playBtn.text = "⏸"
-            }
-        }
-    }
-
-    private fun seekTo(ms: Int) {
-        runCatching {
-            exo?.seekTo(ms.toLong())
-            mp?.seekTo(ms)
-        }
-    }
-
-    // ---------- 生命周期 ----------
+    private var mpTick: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val path = intent.getStringExtra(EXTRA_PATH) ?: run { finish(); return }
         file = File(path)
         isVideo = isVideoExt(file.name)
+        usingFallback = MEDIAPLAYER_ONLY.contains(ext())
 
+        if (usingFallback) {
+            buildFallbackUi()
+            startMediaPlayer()
+        } else {
+            setContentView(R.layout.activity_player)
+            bindHeader()
+            startExo()
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // 旋转不重建（manifest configChanges），仅切换全屏/分栏布局并重新挂接播放器
+        if (!usingFallback && exo != null) rebindExoUi()
+    }
+
+    // ---------- Exo 主路径 ----------
+
+    private fun rebindExoUi() {
+        val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        setContentView(R.layout.activity_player)
+        bindHeader()
+        // 横屏：标题栏悬浮、音频文字隐藏（全屏画面，与设备播放器一致）
+        findViewById<View>(R.id.header)?.let {
+            it.setBackgroundColor(if (land) 0x66000000.toInt() else 0xFF2B2B2B.toInt())
+        }
+        audioViews().forEach { it.visibility = if (!isVideo && !land) View.VISIBLE else View.GONE }
+        findViewById<PlayerView>(R.id.player_view)?.player = exo
+    }
+
+    private fun bindHeader() {
+        findViewById<TextView>(R.id.title)?.text = file.name
+        findViewById<View>(R.id.back)?.setOnClickListener { finish() }
+        findViewById<View>(R.id.more)?.setOnClickListener { showPlayerActions() }
+    }
+
+    /** 音频模式的三行文字视图（横屏布局中不存在，返回空列表）。 */
+    private fun audioViews(): List<View> = listOfNotNull(
+        findViewById(R.id.audio_title),
+        findViewById(R.id.audio_artist),
+        findViewById(R.id.audio_info),
+    )
+
+    private fun startExo() {
+        val player = ExoPlayer.Builder(this).build()
+        exo = player
+        player.addListener(object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                if (!playbackStarted && !fallbackTried) {
+                    fallbackTried = true
+                    runCatching { exo?.release() }
+                    exo = null
+                    usingFallback = true
+                    buildFallbackUi()
+                    startMediaPlayer()
+                } else {
+                    fail()
+                }
+            }
+        })
+
+        if (isVideo) {
+            player.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(file)))
+            player.prepare()
+            player.playWhenReady = true
+        } else {
+            // 音频：先取内嵌封面与元数据 → 带作品图与标题的 MediaItem → prepare
+            Thread {
+                var bytes: ByteArray? = null
+                runCatching {
+                    MediaMetadataRetriever().use { r ->
+                        r.setDataSource(file.absolutePath)
+                        bytes = r.embeddedPicture
+                    }
+                }
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    val artBmp = bytes?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
+                    val meta = MediaMetadata.Builder()
+                        .setTitle(file.nameWithoutExtension)
+                        .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        .build()
+                    player.setMediaItem(
+                        MediaItem.Builder()
+                            .setUri(android.net.Uri.fromFile(file))
+                            .setMediaMetadata(meta)
+                            .build()
+                    )
+                    player.prepare()
+                    player.playWhenReady = true
+                }
+            }.start()
+            // 文字信息（MaterialFiles 元数据栈）
+            AudioInfoLiveData(file.absolutePath).observe(this) { state ->
+                val info = (state as? Stateful.Success<AudioInfo>)?.value ?: return@observe
+                if (isFinishing || isDestroyed) return@observe
+                findViewById<TextView>(R.id.audio_title)?.text =
+                    (info.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension)
+                findViewById<TextView>(R.id.audio_artist)?.text =
+                    (info.artist?.takeIf { it.isNotBlank() }
+                        ?: info.album?.takeIf { it.isNotBlank() }
+                        ?: getString(R.string.player_local_audio))
+                findViewById<TextView>(R.id.audio_info)?.text = listOfNotNull(
+                    info.bitRate?.let { "${it / 1000} kbps" },
+                    info.sampleRate?.let { "${it / 1000} kHz" },
+                    info.genre?.takeIf { it.isNotBlank() },
+                ).joinToString(" · ").ifEmpty { "无损解码直出" }
+            }
+            // 元数据未带出前的占位
+            findViewById<TextView>(R.id.audio_title)?.text = file.nameWithoutExtension
+            findViewById<TextView>(R.id.audio_artist)?.text = getString(R.string.player_local_audio)
+        }
+        rebindExoUi()
+    }
+
+    // ---------- 回退引擎（avi/wma/wmv/midi） ----------
+
+    private fun buildFallbackUi() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(if (isVideo) 0xFF000000.toInt() else 0xFF1E1E1E.toInt())
+            setBackgroundColor(0xFF1E1E1E.toInt())
             fitsSystemWindows = true
         }
-        // 顶栏
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(0xFF2B2B2B.toInt())
             setPadding(24, 32, 24, 32)
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
         }
         bar.addView(TextView(this).apply {
             text = "‹"; textSize = 26f; setTextColor(0xFFDDDDDD.toInt()); setPadding(0, 0, 28, 0)
@@ -133,221 +205,94 @@ class PlayerActivity : AppCompatActivity() {
             ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
-        bar.addView(TextView(this).apply {
-            text = "⋮"; textSize = 22f; setTextColor(0xFFDDDDDD.toInt()); setPadding(dp(16), 0, 0, 0)
-            setOnClickListener { showPlayerActions() }
-        })
         root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        var art: ImageView? = null
-        var title: TextView? = null
-        var artist: TextView? = null
-
         if (isVideo) {
-            // 视频画面（SurfaceView，比例随视频尺寸更新，黑底 letterbox）
-            val holder = FrameLayout(this).apply { setBackgroundColor(0xFF000000.toInt()) }
-            surfaceView = SurfaceView(this)
-            holder.addView(surfaceView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER))
+            val holder = android.widget.FrameLayout(this).apply { setBackgroundColor(0xFF000000.toInt()) }
+            mpSurface = SurfaceView(this)
+            holder.addView(mpSurface, android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, android.view.Gravity.CENTER))
             root.addView(holder, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-        } else {
-            val artView = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
-            root.addView(artView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(260)).apply { topMargin = dp(28) })
-            art = artView
-            title = TextView(this).apply {
-                textSize = 18f; setTextColor(0xFFEEEEEE.toInt())
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                gravity = Gravity.CENTER; maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
-                setPadding(dp(24), dp(18), dp(24), 0)
-            }
-            artist = TextView(this).apply {
-                textSize = 13f; setTextColor(0xFF999999.toInt())
-                gravity = Gravity.CENTER; maxLines = 1
-                setPadding(dp(24), dp(6), dp(24), 0)
-            }
-            infoText = TextView(this).apply {
-                textSize = 12f; setTextColor(0xFF9AA3AC.toInt())
-                gravity = Gravity.CENTER; maxLines = 1
-                setPadding(dp(24), dp(10), dp(24), 0)
-            }
         }
 
-        // 控制区
         val timeRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
             setPadding(dp(24), 0, dp(24), 0)
         }
-        curTime = TextView(this).apply {
+        mpCur = TextView(this).apply {
             text = "0:00"; textSize = 12f; setTextColor(0xFFDDDDDD.toInt())
             setTypeface(android.graphics.Typeface.MONOSPACE)
         }
-        seek = SeekBar(this).apply {
+        mpSeek = SeekBar(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                 leftMargin = dp(10); rightMargin = dp(10)
             }
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                    if (fromUser) curTime.text = fmt(progress.toLong())
+                    if (fromUser) mpCur?.text = fmt(progress.toLong())
                 }
 
-                override fun onStartTrackingTouch(sb: SeekBar?) { userSeeking = true }
+                override fun onStartTrackingTouch(sb: SeekBar?) {}
 
                 override fun onStopTrackingTouch(sb: SeekBar?) {
-                    userSeeking = false
-                    seekTo(sb?.progress ?: 0)
+                    runCatching { mp?.seekTo(sb?.progress ?: 0) }
                 }
             })
         }
-        val durTime = TextView(this).apply {
+        mpDur = TextView(this).apply {
             text = "0:00"; textSize = 12f; setTextColor(0xFFDDDDDD.toInt())
             setTypeface(android.graphics.Typeface.MONOSPACE)
         }
-        timeRow.addView(curTime)
-        timeRow.addView(seek)
-        timeRow.addView(durTime)
+        timeRow.addView(mpCur)
+        timeRow.addView(mpSeek)
+        timeRow.addView(mpDur)
 
-        playBtn = TextView(this).apply {
+        mpBtn = TextView(this).apply {
             text = "▶"; textSize = 52f
             setTextColor(0xFFDDDDDD.toInt())
-            gravity = Gravity.CENTER
+            gravity = android.view.Gravity.CENTER
             setPadding(dp(40), 0, dp(40), 0)
-            setOnClickListener { pauseOrResume() }
+            setOnClickListener { runCatching { if (mp?.isPlaying == true) { mp?.pause(); mpBtn?.text = "▶" } else { mp?.start(); mpBtn?.text = "⏸" } } }
         }
 
         if (isVideo) {
             val controls = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setBackgroundColor(0xFF1E1E1E.toInt())
                 setPadding(0, dp(12), 0, dp(12))
             }
             controls.addView(timeRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            controls.addView(playBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(10); bottomMargin = dp(10)
+            controls.addView(mpBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                gravity = android.view.Gravity.CENTER_HORIZONTAL; topMargin = dp(10); bottomMargin = dp(10)
             })
             root.addView(controls, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         } else {
             val bottom = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
+                gravity = android.view.Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
             }
-            bottom.addView(title)
-            bottom.addView(artist)
-            bottom.addView(infoText)
-            bottom.addView(playBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(30) })
-            bottom.addView(timeRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(34) })
+            bottom.addView(mpBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            bottom.addView(timeRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(30) })
             root.addView(bottom, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-            // 音频元数据（MaterialFiles 的 AudioInfoLiveData 抄录适配）+ 封面
-            loadEmbeddedArt(art)
-            com.limao.unzip.files.player.AudioInfoLiveData(file.absolutePath).observe(this) { state ->
-                val info = (state as? com.limao.unzip.files.player.Stateful.Success<AudioInfo>)?.value
-                    ?: return@observe
-                if (isFinishing || isDestroyed) return@observe
-                title!!.text = (info.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension)
-                artist!!.text = (info.artist?.takeIf { it.isNotBlank() }
-                    ?: info.album?.takeIf { it.isNotBlank() }
-                    ?: getString(R.string.player_local_audio))
-                infoText!!.text = listOfNotNull(
-                    info.bitRate?.let { "${it / 1000} kbps" },
-                    info.sampleRate?.let { "${it / 1000} kHz" },
-                    info.genre?.takeIf { it.isNotBlank() },
-                ).joinToString(" · ").ifEmpty { "无损解码直出" }
-            }
         }
-
         setContentView(root)
-        prepareEngine()
-        ui.post(tick)
-    }
-
-    // ---------- 准备 ----------
-
-    private fun prepareEngine() {
-        if (isVideo || !MEDIAPLAYER_ONLY.contains(ext())) {
-            startExo()
-        } else {
-            startMediaPlayer()
-        }
-    }
-
-    private fun startExo() {
-        val player = ExoPlayer.Builder(this).build()
-        exo = player
-        if (isVideo) {
-            surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-                override fun surfaceCreated(holder: SurfaceHolder) {}
-                override fun surfaceChanged(holder: SurfaceHolder, f: Int, w: Int, h: Int) {}
-                override fun surfaceDestroyed(holder: SurfaceHolder) {}
-            })
-            player.setVideoSurfaceView(surfaceView)
-        }
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) {
-                    prepared = true
-                    playbackStarted = playbackStarted || player.playWhenReady
-                    playBtn.text = if (playingNow()) "⏸" else "▶"
-                }
-            }
-
-            override fun onIsPlayingChanged(playing: Boolean) {
-                if (playing) {
-                    playbackStarted = true
-                    playBtn.text = "⏸"
-                } else if (prepared) {
-                    playBtn.text = "▶"
-                }
-            }
-
-            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                if (!isVideo || videoSize.width == 0 || videoSize.height == 0) return
-                val ratio = videoSize.width.toFloat() / videoSize.height.toFloat()
-                surfaceView.post {
-                    val parent = surfaceView.parent as? FrameLayout ?: return@post
-                    val w = parent.width.takeIf { it > 0 } ?: return@post
-                    var h = (w / ratio).toInt().coerceAtLeast(1)
-                    parent.post {
-                        val ph = parent.height.takeIf { it > 0 } ?: return@post
-                        if (h > ph) h = ph
-                        surfaceView.layoutParams = FrameLayout.LayoutParams((h * ratio).toInt(), h, Gravity.CENTER)
-                        surfaceView.requestLayout()
-                    }
-                }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                if (!playbackStarted && !fallbackTried) {
-                    fallbackTried = true
-                    releaseEngines()
-                    startMediaPlayer()
-                } else {
-                    fail()
-                }
-            }
-        })
-        player.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(file)))
-        player.prepare()
-        player.playWhenReady = true
     }
 
     private fun startMediaPlayer() {
-        // 平台回退引擎：avi/wma 依赖设备解码器；midi 走系统合成器
         Thread {
             var ok = false
             var duration = 0
             val p = MediaPlayer()
             runCatching {
-                if (isVideo) {
-                    p.setDisplay(surfaceView.holder)
-                }
+                if (isVideo) mpSurface?.holder?.let { p.setDisplay(it) }
                 p.setDataSource(file.absolutePath)
                 p.prepare()
                 p.setOnCompletionListener {
                     runOnUiThread {
-                        seek.progress = 0
-                        curTime.text = "0:00"
-                        playBtn.text = "▶"
+                        mpSeek?.progress = 0
+                        mpCur?.text = "0:00"
+                        mpBtn?.text = "▶"
                     }
                 }
                 p.start()
@@ -362,14 +307,14 @@ class PlayerActivity : AppCompatActivity() {
                     return@runOnUiThread
                 }
                 mp = p
-                prepared = true
+                mpPrepared = true
                 playbackStarted = true
-                playBtn.text = "⏸"
-                if (duration > 0) seek.max = duration
+                mpBtn?.text = "⏸"
+                if (duration > 0) mpSeek?.max = duration
+                mpDur?.text = fmt(duration.toLong())
             }
         }.start()
     }
-
 
     private fun fail() {
         Toast.makeText(this, getString(R.string.toast_cant_open, file.name), Toast.LENGTH_LONG).show()
@@ -377,30 +322,6 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun ext(): String = file.name.substringAfterLast('.', "").lowercase()
-
-    // ---------- 音频封面 ----------
-
-    private fun loadEmbeddedArt(art: ImageView?) {
-        Thread {
-            var bitmap: android.graphics.Bitmap? = null
-            runCatching {
-                MediaMetadataRetriever().use { r ->
-                    r.setDataSource(file.absolutePath)
-                    bitmap = r.embeddedPicture?.let {
-                        android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size)
-                    }
-                }
-            }
-            runOnUiThread {
-                if (bitmap != null) {
-                    art?.setImageBitmap(bitmap)
-                } else {
-                    art?.setImageResource(R.drawable.ic_audiotrack)
-                    art?.setColorFilter(0xFF9AA3AC.toInt())
-                }
-            }
-        }.start()
-    }
 
     // ---------- 播放器操作单（MaterialFiles 风格底部列表） ----------
 
@@ -444,7 +365,7 @@ class PlayerActivity : AppCompatActivity() {
                 sheet.dismiss()
                 showPlayerActions()
             }
-            actionRow("播放速度：${speedLabel}") {
+            actionRow("播放速度：$speedLabel") {
                 sheet.dismiss()
                 showSpeedSheet()
             }
@@ -509,17 +430,19 @@ class PlayerActivity : AppCompatActivity() {
         exo = null
         runCatching { mp?.release() }
         mp = null
-        prepared = false
+        mpPrepared = false
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        ui.removeCallbacks(tick)
+        mpTick?.let { ui.removeCallbacks(it) }
         releaseEngines()
     }
 
     /** 测试钩子。 */
-    internal fun isPlayingNow(): Boolean = playingNow()
+    internal fun isPlayingNow(): Boolean = runCatching {
+        exo?.isPlaying == true || mp?.isPlaying == true
+    }.getOrDefault(false)
 
     companion object {
         const val EXTRA_PATH = "path"

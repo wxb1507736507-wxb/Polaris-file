@@ -11,8 +11,8 @@ android {
         applicationId = "com.limao.unzip"
         minSdk = 26
         targetSdk = 36
-        versionCode = 23
-        versionName = "0.9.28"
+        versionCode = 26
+        versionName = "0.9.31"
         resourceConfigurations += listOf("zh", "en")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
@@ -63,6 +63,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-ui:1.5.1")
     implementation("androidx.activity:activity-ktx:1.9.3")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

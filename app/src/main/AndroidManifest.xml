@@ -4,6 +4,22 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- 允许将 Office 文件交给设备上安装的 Office 应用查看 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+        </intent>
+    </queries>
+
     <!-- 前台解压服务（API 34+ 要求声明类型） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -67,7 +83,8 @@
 
         <activity
             android:name=".files.PlayerActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" />
 
         <activity
             android:name=".files.ProgressActivity"

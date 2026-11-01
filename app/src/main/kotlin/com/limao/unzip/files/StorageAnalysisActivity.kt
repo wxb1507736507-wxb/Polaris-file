@@ -82,6 +82,15 @@ class StorageAnalysisActivity : AppCompatActivity() {
                 showFileMenu(f, block.size)
             }
         }
+        treeView.onBlockLongClick = { block ->
+            // 长按色块 → 在文件浏览器中打开该路径
+            startActivity(
+                Intent(this, FileListActivity::class.java).apply {
+                    putExtra(FileListActivity.EXTRA_MODE, "browser")
+                    putExtra(FileListActivity.EXTRA_PATH, block.path)
+                },
+            )
+        }
         rescan()
     }
 
@@ -183,6 +192,7 @@ class StorageAnalysisActivity : AppCompatActivity() {
 
         var blocks: List<Block> = emptyList()
         var onBlockClick: ((Block) -> Unit)? = null
+        var onBlockLongClick: ((Block) -> Unit)? = null
         private var pending: List<Item>? = null
 
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -256,14 +266,53 @@ class StorageAnalysisActivity : AppCompatActivity() {
 
         override fun performClick(): Boolean = super.performClick()
 
+        var longPressDetected = false
+        private val longPressRunnable = Runnable {
+            longPressDetected = true
+            val event = lastDownEvent ?: return@Runnable
+            val b = blocks.firstOrNull { it.rect.contains(event.x, event.y) } ?: return@Runnable
+            onBlockLongClick?.invoke(b)
+        }
+        private var lastDownEvent: android.view.MotionEvent? = null
+
         override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
-            if (event.action == android.view.MotionEvent.ACTION_UP) {
-                val b = blocks.firstOrNull { it.rect.contains(event.x, event.y) }
-                if (b != null) {
-                    performClick()
-                    onBlockClick?.invoke(b)
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    lastDownEvent = android.view.MotionEvent.obtain(event)
+                    longPressDetected = false
+                    postDelayed(longPressRunnable, 500)
                 }
-                return true
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    if (longPressDetected) return true
+                    // 手指移动超过 touch slop 则取消长按
+                    val down = lastDownEvent
+                    if (down != null) {
+                        val dx = event.x - down.x
+                        val dy = event.y - down.y
+                        if (dx * dx + dy * dy > 100) { // ~10dp²
+                            removeCallbacks(longPressRunnable)
+                        }
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP -> {
+                    removeCallbacks(longPressRunnable)
+                    if (!longPressDetected) {
+                        val b = blocks.firstOrNull { it.rect.contains(event.x, event.y) }
+                        if (b != null) {
+                            performClick()
+                            onBlockClick?.invoke(b)
+                        }
+                    }
+                    longPressDetected = false
+                    lastDownEvent?.recycle()
+                    lastDownEvent = null
+                }
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    removeCallbacks(longPressRunnable)
+                    longPressDetected = false
+                    lastDownEvent?.recycle()
+                    lastDownEvent = null
+                }
             }
             return true
         }

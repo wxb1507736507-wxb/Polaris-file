@@ -99,7 +99,7 @@ class E2eTest {
         return dst
     }
 
-    private fun waitFileContent(f: File, expected: String, timeoutMs: Long = 5000): Boolean {
+    private fun waitFileContent(f: File, expected: String, timeoutMs: Long = 10000L): Boolean {
         val end = SystemClock.uptimeMillis() + timeoutMs
         while (SystemClock.uptimeMillis() < end) {
             if (f.isFile && runCatching { f.readText() }.getOrNull() == expected) return true

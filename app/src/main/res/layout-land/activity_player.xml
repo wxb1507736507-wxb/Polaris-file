@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:use_controller="true"
+        app:show_timeout="3000"
+        app:resize_mode="fit"
+        app:surface_type="surface_view"
+        app:show_fastforward_button="false"
+        app:show_rewind_button="false"
+        app:show_previous_button="false"
+        app:show_next_button="false"
+        app:hide_on_touch="true" />
+
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#66000000"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="‹"
+            android:textSize="26sp"
+            android:textColor="#DDDDDD"
+            android:paddingRight="24dp" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="16sp"
+            android:textColor="#EEEEEE"
+            android:fontFamily="monospace"
+            android:maxLines="1"
+            android:ellipsize="middle" />
+
+        <TextView
+            android:id="@+id/more"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⋮"
+            android:textSize="22sp"
+            android:textColor="#DDDDDD"
+            android:paddingLeft="16dp" />
+    </LinearLayout>
+</FrameLayout>

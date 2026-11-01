@@ -19,41 +19,50 @@ class ImagePreviewActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val path = intent.getStringExtra(EXTRA_PATH) ?: run { finish(); return }
         val file = File(path)
+        // 背景跟随应用主题：日间白底深字，夜间黑底浅字
+        val night = com.limao.unzip.UiTheme.isNight()
+        val bgRoot = if (night) 0xFF101010.toInt() else 0xFFF5F6F8.toInt()
+        val bgBar = if (night) 0xE6222222.toInt() else 0xE6FFFFFF.toInt()
+        val fgPrimary = if (night) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt()
+        val fgSecondary = if (night) 0xFFDDDDDD.toInt() else 0xFF49454F.toInt()
+        val fgMuted = if (night) 0xFF999999.toInt() else 0xFF666666.toInt()
+        val bgImageArea = if (night) 0xFF000000.toInt() else 0xFFE8EAED.toInt()
+        val bgMeta = if (night) 0xFF222222.toInt() else 0xFFF0F0F0.toInt()
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFF101010.toInt())
+            setBackgroundColor(bgRoot)
             fitsSystemWindows = true
         }
         val bar = LinearLayout(this).apply {
-            setBackgroundColor(0xE6222222.toInt())
+            setBackgroundColor(bgBar)
             setPadding(24, 32, 24, 32)
             gravity = Gravity.CENTER_VERTICAL
         }
         bar.addView(TextView(this).apply {
-            text = "‹"; textSize = 26f; setTextColor(0xFFDDDDDD.toInt()); setPadding(0, 0, 28, 0)
+            text = "‹"; textSize = 26f; setTextColor(fgSecondary); setPadding(0, 0, 28, 0)
             setOnClickListener { finish() }
         })
         bar.addView(TextView(this).apply {
-            text = file.name; textSize = 14f; setTextColor(0xFFEEEEEE.toInt())
+            text = file.name; textSize = 14f; setTextColor(fgPrimary)
             maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
         bar.addView(TextView(this).apply {
             text = "${file.length() / 1024} KB"
-            textSize = 12f; setTextColor(0xFF999999.toInt())
+            textSize = 12f; setTextColor(fgMuted)
         })
         root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         val img = ImageView(this).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
-            setBackgroundColor(0xFF000000.toInt())
+            setBackgroundColor(bgImageArea)
         }
         root.addView(img, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         val meta = TextView(this).apply {
-            textSize = 12f; setTextColor(0xFF888888.toInt())
-            setBackgroundColor(0xFF222222.toInt())
+            textSize = 12f; setTextColor(fgMuted)
+            setBackgroundColor(bgMeta)
             setPadding(20, 10, 20, 14)
             gravity = Gravity.CENTER
         }
