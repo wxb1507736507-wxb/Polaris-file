@@ -27,7 +27,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.limao.unzip.R
 import java.io.File
-import java.util.zip.ZipFile
 
 /**
  * 内建 Office 查看器：docx/xlsx/pptx 在软件内直接渲染（不调起外部应用）。
@@ -135,24 +134,33 @@ class OfficeViewerActivity : AppCompatActivity() {
     }
 
     private fun parse(file: File, kind: String): List<OfficeBlock> {
-        return when (kind) {
-            // docx 的 zip 保持打开（图片块在 RecyclerView 绑定时懒解码），onDestroy 统一关闭
-            "docx" -> {
-                val z = ZipFile(file)
-                docxZip = z
-                DocxParser.parse(z)
-            }
-            "xlsx" -> ZipFile(file).use { z -> XlsxParser.parse(z) }
-            "pptx" -> ZipFile(file).use { z -> PptxParser.parse(z) }
-            "doc" -> listOf(
-                OfficeBlock.Notice(getString(R.string.office_legacy_doc)),
+        // 魔数嗅探：扩展名不可信（大量"docx"实为 OLE2 老格式；0 字节/损坏文件直接给明确提示）
+        return when (OfficeUtil.sniff(file)) {
+            OfficeUtil.Kind.OLE2_LEGACY -> listOf(
+                OfficeBlock.Notice(getString(R.string.office_ole2_misnamed)),
             )
-            else -> listOf(OfficeBlock.Notice(getString(R.string.office_unknown)))
+            OfficeUtil.Kind.UNKNOWN -> listOf(
+                OfficeBlock.Notice(getString(R.string.office_corrupt, file.length() / 1024)),
+            )
+            OfficeUtil.Kind.OOXML -> when (kind) {
+                // docx 的 zip 保持打开（图片块在 RecyclerView 绑定时懒解码），onDestroy 统一关闭
+                "docx" -> {
+                    val z = OfficeSource.open(file)
+                    docxZip = z
+                    DocxParser.parse(z)
+                }
+                "xlsx" -> OfficeSource.open(file).use { z -> XlsxParser.parse(z) }
+                "pptx" -> OfficeSource.open(file).use { z -> PptxParser.parse(z) }
+                "doc" -> listOf(
+                    OfficeBlock.Notice(getString(R.string.office_legacy_doc)),
+                )
+                else -> listOf(OfficeBlock.Notice(getString(R.string.office_unknown)))
+            }
         }
     }
 
     // docx 的 zip 需要跨块懒解码图片，持有到 destroy
-    private var docxZip: ZipFile? = null
+    private var docxZip: OfficeSource? = null
 
     private fun setupAdapter(blocks: List<OfficeBlock>, kind: String) {
         when (kind) {

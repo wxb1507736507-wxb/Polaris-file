@@ -2,6 +2,8 @@ package com.limao.unzip.files.office
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.zip.ZipFile
 
 /**
@@ -82,10 +84,10 @@ sealed class OfficeBlock {
 /** OOXML 解析公共工具 */
 object OfficeUtil {
     /** 解析 zip 内 rels 文件：rId → zip 内目标路径（归一化为 zip entry 名） */
-    fun loadRels(zip: ZipFile, relsPath: String, baseDir: String): HashMap<String, String> {
+    fun loadRels(zip: OfficeSource, relsPath: String, baseDir: String): HashMap<String, String> {
         val map = HashMap<String, String>()
-        val e = zip.getEntry(relsPath) ?: return map
-        val p = newParser(zip.getInputStream(e))
+        if (!zip.has(relsPath)) return map
+        val p = newParser(zip.stream(relsPath) ?: return map)
         loop@ while (true) {
             val ev = p.eventType
             if (ev == org.xmlpull.v1.XmlPullParser.START_TAG && local(p.name) == "Relationship") {
@@ -154,16 +156,16 @@ object OfficeUtil {
     }
 
     /** 从 zip 懒解码图片：按 maxDim 采样，失败返回 null */
-    fun decodeImage(zip: ZipFile, entryPath: String, maxDim: Int): Bitmap? {
-        val entry = zip.getEntry(entryPath) ?: return null
+    fun decodeImage(zip: OfficeSource, entryPath: String, maxDim: Int): Bitmap? {
+        if (!zip.has(entryPath)) return null
         return runCatching {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            zip.getInputStream(entry).use { BitmapFactory.decodeStream(it, null, bounds) }
+            zip.stream(entryPath)?.use { BitmapFactory.decodeStream(it, null, bounds) }
             if (bounds.outWidth <= 0) return null
             var sample = 1
             while (bounds.outWidth / (sample * 2) >= maxDim || bounds.outHeight / (sample * 2) >= maxDim) sample *= 2
             val opts = BitmapFactory.Options().apply { inSampleSize = sample }
-            zip.getInputStream(entry).use { BitmapFactory.decodeStream(it, null, opts) }
+            zip.stream(entryPath)?.use { BitmapFactory.decodeStream(it, null, opts) }
         }.getOrNull()
     }
 
@@ -172,4 +174,95 @@ object OfficeUtil {
 
     /** 半点（half-point）→ sp */
     fun halfPointToSp(hp: Int): Float = hp / 2f
+
+    /** 魔数嗅探结果 */
+    enum class Kind { OOXML, OLE2_LEGACY, UNKNOWN }
+
+    /** 读文件头判断真实类型：扩展名不可信（大量"docx"实为 OLE2 老格式） */
+    fun sniff(file: File): Kind {
+        val head = ByteArray(8)
+        runCatching {
+            java.io.FileInputStream(file).use { it.read(head) }
+        }
+        val hex = head.joinToString("") { String.format("%02X", it) }
+        return when {
+            hex.startsWith("504B0304") || hex.startsWith("504B0506") || hex.startsWith("504B0708") -> Kind.OOXML
+            hex.startsWith("D0CF11E0A1B11AE1") -> Kind.OLE2_LEGACY
+            else -> Kind.UNKNOWN
+        }
+    }
+}
+
+/**
+ * OOXML 包访问抽象：优先 java.util.zip.ZipFile（随机访问）；
+ * 构造失败（WPS 流式写入 data descriptor、非标准布局等）时回退
+ * ZipInputStream 全量扫描到内存（有总量上限），保证非标准 zip 也能解析。
+ */
+class OfficeSource private constructor(
+    private val zip: ZipFile?,
+    private val data: Map<String, ByteArray>?,
+) : java.io.Closeable {
+
+    fun has(name: String): Boolean =
+        if (zip != null) zip.getEntry(name) != null else data?.containsKey(name) == true
+
+    fun names(): List<String> =
+        if (zip != null) zip.entries().asSequence().map { it.name }.toList()
+        else data?.keys?.toList() ?: emptyList()
+
+    fun stream(name: String): java.io.InputStream? =
+        if (zip != null) {
+            val e = zip.getEntry(name) ?: return null
+            zip.getInputStream(e)
+        } else {
+            data?.get(name)?.let { java.io.ByteArrayInputStream(it) }
+        }
+
+    override fun close() {
+        runCatching { zip?.close() }
+    }
+
+    companion object {
+        private const val MAX_TOTAL = 96L * 1024 * 1024 // 回退扫描总量上限
+        private const val MAX_ENTRY = 32L * 1024 * 1024 // 单条目上限
+
+        fun open(file: File): OfficeSource {
+            // 非真实 zip（OLE2/损坏）直接抛出，由调用方按嗅探结果给提示
+            val zf = ZipFile(file)
+            return try {
+                // 探测一次可读性
+                zf.entries().hasMoreElements()
+                OfficeSource(zf, null)
+            } catch (t: Throwable) {
+                runCatching { zf.close() }
+                scanFallback(file)
+            }
+        }
+
+        /** ZipInputStream 流式扫描回退（容错 data descriptor / 非标准头） */
+        private fun scanFallback(file: File): OfficeSource {
+            val map = HashMap<String, ByteArray>()
+            var total = 0L
+            java.util.zip.ZipInputStream(java.io.BufferedInputStream(java.io.FileInputStream(file), 256 * 1024)).use { zis ->
+                while (true) {
+                    val e = zis.nextEntry ?: break
+                    val name = e.name
+                    if (name.isEmpty() || e.isDirectory) { zis.closeEntry(); continue }
+                    if (e.size > MAX_ENTRY || total + e.size > MAX_TOTAL) { zis.closeEntry(); continue }
+                    val buf = ByteArrayOutputStream(maxOf(4096, e.size.toInt().coerceAtMost(1 shl 20)))
+                    val chunk = ByteArray(64 * 1024)
+                    while (true) {
+                        val n = zis.read(chunk)
+                        if (n < 0) break
+                        buf.write(chunk, 0, n)
+                    }
+                    map[name] = buf.toByteArray()
+                    total += buf.size()
+                    zis.closeEntry()
+                }
+            }
+            if (map.isEmpty()) throw java.io.IOException("zip 回退扫描失败")
+            return OfficeSource(null, map)
+        }
+    }
 }

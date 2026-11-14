@@ -159,6 +159,8 @@
     <string name="office_failed">Failed to parse document: %1$s</string>
     <string name="office_legacy_doc">Legacy .doc is a binary format and cannot be previewed in-app. Save it as .docx with Office/WPS to view it here.</string>
     <string name="office_unknown">Preview not supported for this format</string>
+    <string name="office_ole2_misnamed">This file is actually legacy Office binary (.doc/.xls/.ppt) despite its extension. Save it as .docx/.xlsx/.pptx with Office/WPS to preview in-app.</string>
+    <string name="office_corrupt">File is corrupt or empty (%1$d KB) and cannot be parsed</string>
     <string name="gif_pick_source">Pick a video or image</string>
     <string name="gif_converting">Converting to GIF…</string>
     <string name="gif_done">GIF saved: %1$s</string>

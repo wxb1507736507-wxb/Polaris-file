@@ -2,7 +2,6 @@ package com.limao.unzip.files.office
 
 import org.xmlpull.v1.XmlPullParser
 import java.util.Locale
-import java.util.zip.ZipFile
 
 /**
  * PPTX（PowerPoint）解析：slideN.xml 形状树 → 文本框/图片按原始 EMU 坐标定位，
@@ -10,12 +9,12 @@ import java.util.zip.ZipFile
  */
 object PptxParser {
 
-    fun parse(zip: ZipFile, onProgress: (Int) -> Unit = {}): List<OfficeBlock> {
+    fun parse(zip: OfficeSource, onProgress: (Int) -> Unit = {}): List<OfficeBlock> {
         // 幻灯片尺寸（EMU）
         var slideW = 12192000L
         var slideH = 6858000L
-        zip.getEntry("ppt/presentation.xml")?.let { e ->
-            val p = OfficeUtil.newParser(zip.getInputStream(e))
+        if (zip.has("ppt/presentation.xml")) {
+            val p = OfficeUtil.newParser(zip.stream("ppt/presentation.xml")!!)
             while (p.eventType != XmlPullParser.END_DOCUMENT) {
                 if (p.eventType == XmlPullParser.START_TAG && OfficeUtil.local(p.name) == "sldSz") {
                     OfficeUtil.attr(p, "cx")?.toLongOrNull()?.let { slideW = it }
@@ -26,8 +25,7 @@ object PptxParser {
         }
 
         // 收集 slides（按文件序号排序，保持页面顺序）
-        val slideNames = zip.entries().asSequence()
-            .map { it.name }
+        val slideNames = zip.names().asSequence()
             .filter { it.matches(Regex("ppt/slides/slide\\d+\\.xml")) }
             .sortedBy { it.substringAfterLast("slide").substringBefore('.').toIntOrNull() ?: 0 }
             .toList()
@@ -44,7 +42,7 @@ object PptxParser {
     }
 
     private fun parseSlide(
-        zip: ZipFile,
+        zip: OfficeSource,
         path: String,
         num: Int,
         total: Int,
@@ -54,7 +52,7 @@ object PptxParser {
         onProgress: (Int) -> Unit,
     ): OfficeBlock {
         val shapes = ArrayList<OfficeBlock.Slide.Shape>()
-        val entry = zip.getEntry(path) ?: return OfficeBlock.Notice("幻灯片 $num 缺失")
+        if (!zip.has(path)) return OfficeBlock.Notice("幻灯片 $num 缺失")
 
         // 逐形状状态
         var x = 0L; var y = 0L; var w = 0L; var h = 0L
@@ -90,7 +88,7 @@ object PptxParser {
             lines.clear()
         }
 
-        val p = OfficeUtil.newParser(zip.getInputStream(entry))
+        val p = OfficeUtil.newParser(zip.stream(path)!!)
         // 元素栈：TEXT 期间 getName() 不可靠（kxml2 预读），以栈顶为准
         val elementStack = ArrayDeque<String>()
         while (p.eventType != XmlPullParser.END_DOCUMENT) {

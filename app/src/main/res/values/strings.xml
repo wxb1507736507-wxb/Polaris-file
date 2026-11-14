@@ -159,6 +159,8 @@
     <string name="office_failed">无法解析文档：%1$s</string>
     <string name="office_legacy_doc">旧版 .doc 为二进制格式，暂不支持内建预览。请用 Office/WPS 另存为 .docx 后即可在软件内查看。</string>
     <string name="office_unknown">暂不支持预览此格式</string>
+    <string name="office_ole2_misnamed">该文件实际为旧版 Office 二进制格式（.doc/.xls/.ppt），只是扩展名叫 .docx/.xlsx/.pptx，暂不支持内建预览。请用 Office/WPS 打开后另存为新格式（docx/xlsx/pptx）即可在软件内查看。</string>
+    <string name="office_corrupt">文件已损坏或为空（%1$d KB），无法解析</string>
     <string name="gif_pick_source">选择视频或图片</string>
     <string name="gif_converting">正在转换 GIF…</string>
     <string name="gif_done">GIF 已保存：%1$s</string>

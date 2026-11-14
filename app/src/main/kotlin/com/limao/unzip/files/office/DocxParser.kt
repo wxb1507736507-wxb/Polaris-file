@@ -25,16 +25,16 @@ object DocxParser {
         var highlight: Int? = null
     }
 
-    fun parse(zip: ZipFile, onProgress: (Int) -> Unit = {}): List<OfficeBlock> {
+    fun parse(zip: OfficeSource, onProgress: (Int) -> Unit = {}): List<OfficeBlock> {
         val styles = loadStyles(zip)
         val rels = OfficeUtil.loadRels(zip, "word/_rels/document.xml.rels", "word")
         val listPrefix = loadNumberingPrefixes(zip)
 
         val blocks = ArrayList<OfficeBlock>(256)
-        val entry = zip.getEntry("word/document.xml") ?: return listOf(
+        if (!zip.has("word/document.xml")) return listOf(
             OfficeBlock.Notice("文档缺少 document.xml，可能已损坏"),
         )
-        val p = OfficeUtil.newParser(zip.getInputStream(entry))
+        val p = OfficeUtil.newParser(zip.stream("word/document.xml")!!)
 
         // 段落累积状态
         val spans = ArrayList<OfficeBlock.Span>()
@@ -256,10 +256,10 @@ object DocxParser {
         return blocks
     }
 
-    private fun loadStyles(zip: ZipFile): Map<String, StyleDef> {
-        val e = zip.getEntry("word/styles.xml") ?: return emptyMap()
+    private fun loadStyles(zip: OfficeSource): Map<String, StyleDef> {
+        if (!zip.has("word/styles.xml")) return emptyMap()
         val map = HashMap<String, StyleDef>()
-        val p = OfficeUtil.newParser(zip.getInputStream(e))
+        val p = OfficeUtil.newParser(zip.stream("word/styles.xml")!!)
         var id: String? = null
         var nameVal: String? = null
         var sz: Int? = null
@@ -292,10 +292,10 @@ object DocxParser {
     }
 
     /** numId → 列表前缀（bullet/decimal）；十进制计数器在解析段落时递增 */
-    private fun loadNumberingPrefixes(zip: ZipFile): Map<Int, String> {
-        val e = zip.getEntry("word/numbering.xml") ?: return emptyMap()
+    private fun loadNumberingPrefixes(zip: OfficeSource): Map<Int, String> {
+        if (!zip.has("word/numbering.xml")) return emptyMap()
         val result = HashMap<Int, String>()
-        val p = OfficeUtil.newParser(zip.getInputStream(e))
+        val p = OfficeUtil.newParser(zip.stream("word/styles.xml")!!)
         var numId = -1
         var absRef = -1
         var absId = -1

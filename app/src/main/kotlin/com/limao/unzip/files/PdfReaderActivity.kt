@@ -23,6 +23,7 @@ class PdfReaderActivity : AppCompatActivity() {
     private lateinit var renderer: PdfRenderer
     private lateinit var fd: ParcelFileDescriptor
     private lateinit var pageLabel: TextView
+    private lateinit var list: RecyclerView
     private val pageCache = android.util.LruCache<Int, Bitmap>(6)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +61,7 @@ class PdfReaderActivity : AppCompatActivity() {
         bar.addView(pageLabel)
         root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        val list = RecyclerView(this).apply {
+        list = RecyclerView(this).apply {
             layoutManager = LinearLayoutManager(this@PdfReaderActivity)
             setBackgroundColor(bgPage)
         }
@@ -68,6 +69,14 @@ class PdfReaderActivity : AppCompatActivity() {
         setContentView(root)
 
         Thread {
+            // 空文件/损坏文件给出内建错误页（不再 toast+退出，让用户明确看到原因）
+            if (file.length() == 0L) {
+                runOnUiThread {
+                    pageLabel.text = "无法打开"
+                    showPdfError("文件为空（0 KB），可能下载中断或源文件已损坏")
+                }
+                return@Thread
+            }
             runCatching {
                 fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                 renderer = PdfRenderer(fd)
@@ -78,12 +87,35 @@ class PdfReaderActivity : AppCompatActivity() {
                 }
             }.onFailure { t ->
                 runOnUiThread {
-                    Toast.makeText(this, "无法打开 PDF：${t.message}", Toast.LENGTH_LONG).show()
-                    finish()
+                    pageLabel.text = "无法打开"
+                    showPdfError(
+                        when {
+                            t.message?.contains("length", true) == true -> "文件不完整或已损坏（大小 ${file.length() / 1024} KB）"
+                            else -> t.message ?: "未知错误"
+                        },
+                    )
                 }
             }
         }.start()
     }
+
+    /** 内建错误卡片：常驻显示，不退出页面 */
+    private fun showPdfError(message: String) {
+        val err = TextView(this).apply {
+            textSize = 14f
+            setTextColor(if (com.limao.unzip.UiTheme.isNight()) 0xFFAAAAAA.toInt() else 0xFF49454F.toInt())
+            setBackgroundColor(if (com.limao.unzip.UiTheme.isNight()) 0xFF1E2126.toInt() else 0xFFF6F6F6.toInt())
+            setPadding(dp(20), dp(24), dp(20), dp(24))
+            gravity = Gravity.CENTER
+            text = "无法打开 PDF\n\n$message"
+        }
+        (list.parent as? ViewGroup)?.addView(err, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
+        list.visibility = View.GONE
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun renderPage(index: Int): Bitmap? {
         synchronized(pageCache) { pageCache.get(index) }?.let { return it }

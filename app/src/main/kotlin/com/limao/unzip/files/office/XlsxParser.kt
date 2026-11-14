@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import java.util.zip.ZipFile
 
 /**
  * XLSX（Excel）解析：workbook.xml + sharedStrings + sheetN.xml + styles.xml。
@@ -25,14 +24,14 @@ object XlsxParser {
     private const val MAX_ROWS = 1000
     private const val MAX_COLS = 60
 
-    fun parse(zip: ZipFile, onProgress: (Int) -> Unit = {}): List<OfficeBlock> {
+    fun parse(zip: OfficeSource, onProgress: (Int) -> Unit = {}): List<OfficeBlock> {
         val shared = loadSharedStrings(zip)
         val boldFlags = loadBoldFlags(zip)
         val dateFmt = loadDateFormats(zip)
 
         // workbook: sheet 名 → rId
-        val wb = zip.getEntry("xl/workbook.xml") ?: return listOf(OfficeBlock.Notice("缺少 workbook.xml"))
-        val p = OfficeUtil.newParser(zip.getInputStream(wb))
+        if (!zip.has("xl/workbook.xml")) return listOf(OfficeBlock.Notice("缺少 workbook.xml"))
+        val p = OfficeUtil.newParser(zip.stream("xl/workbook.xml")!!)
         val sheetNames = ArrayList<Pair<String, String>>() // name, rId
         while (p.eventType != XmlPullParser.END_DOCUMENT) {
             if (p.eventType == XmlPullParser.START_TAG && OfficeUtil.local(p.name) == "sheet") {
@@ -48,8 +47,8 @@ object XlsxParser {
         var sheetIndex = 0
         for ((name, rid) in sheetNames) {
             val path = rels[rid] ?: continue
-            val entry = zip.getEntry(path) ?: continue
-            blocks.add(parseSheet(zip, entry, name, shared, boldFlags, dateFmt, sheetIndex, onProgress))
+            if (!zip.has(path)) continue
+            blocks.add(parseSheet(zip, path, name, shared, boldFlags, dateFmt, sheetIndex, onProgress))
             sheetIndex++
         }
         if (blocks.isEmpty()) return listOf(OfficeBlock.Notice("工作簿中没有工作表"))
@@ -58,8 +57,8 @@ object XlsxParser {
 
     /** 单张表 → SheetHeader 块（渲染层识别） */
     private fun parseSheet(
-        zip: ZipFile,
-        entry: java.util.zip.ZipEntry,
+        zip: OfficeSource,
+        entryPath: String,
         name: String,
         shared: List<String>,
         boldFlags: Set<Int>,
@@ -67,7 +66,7 @@ object XlsxParser {
         sheetIndex: Int,
         onProgress: (Int) -> Unit,
     ): OfficeBlock {
-        val p = OfficeUtil.newParser(zip.getInputStream(entry))
+        val p = OfficeUtil.newParser(zip.stream(entryPath)!!)
         val grid = ArrayList<List<OfficeBlock.SheetCell?>>()
         var maxCol = 0
         // 列宽（字符数）
@@ -163,7 +162,7 @@ object XlsxParser {
         }
         // 读取列宽
         // （重新打开流读取 cols；简单起见在网格解析后再读一次）
-        val p2 = OfficeUtil.newParser(zip.getInputStream(entry))
+        val p2 = OfficeUtil.newParser(zip.stream(entryPath)!!)
         while (p2.eventType != XmlPullParser.END_DOCUMENT) {
             if (p2.eventType == XmlPullParser.START_TAG && OfficeUtil.local(p2.name) == "col") {
                 val min = OfficeUtil.attr(p2, "min")?.toIntOrNull() ?: 0
@@ -214,10 +213,10 @@ object XlsxParser {
         else SimpleDateFormat("yyyy/M/d", Locale.getDefault()).format(d)
     }
 
-    private fun loadSharedStrings(zip: ZipFile): List<String> {
-        val e = zip.getEntry("xl/sharedStrings.xml") ?: return emptyList()
+    private fun loadSharedStrings(zip: OfficeSource): List<String> {
+        if (!zip.has("xl/sharedStrings.xml")) return emptyList()
         val list = ArrayList<String>()
-        val p = OfficeUtil.newParser(zip.getInputStream(e))
+        val p = OfficeUtil.newParser(zip.stream("xl/styles.xml")!!)
         val sb = StringBuilder()
         var inSi = false
         var inR = false
@@ -241,9 +240,9 @@ object XlsxParser {
     }
 
     /** cellXfs 中带加粗字体的样式索引集合 */
-    private fun loadBoldFlags(zip: ZipFile): Set<Int> {
-        val e = zip.getEntry("xl/styles.xml") ?: return emptySet()
-        val p = OfficeUtil.newParser(zip.getInputStream(e))
+    private fun loadBoldFlags(zip: OfficeSource): Set<Int> {
+        if (!zip.has("xl/styles.xml")) return emptySet()
+        val p = OfficeUtil.newParser(zip.stream("xl/styles.xml")!!)
         val fontBold = ArrayList<Boolean>() // fontId → bold
         val xfFont = ArrayList<Int>() // xfId → fontId
         var inFonts = false
@@ -277,9 +276,9 @@ object XlsxParser {
     }
 
     /** 内建日期格式 numFmtId 集合（14-22, 45-47） */
-    private fun loadDateFormats(zip: ZipFile): Set<Int> {
-        val e = zip.getEntry("xl/styles.xml") ?: return emptySet()
-        val p = OfficeUtil.newParser(zip.getInputStream(e))
+    private fun loadDateFormats(zip: OfficeSource): Set<Int> {
+        if (!zip.has("xl/styles.xml")) return emptySet()
+        val p = OfficeUtil.newParser(zip.stream("xl/styles.xml")!!)
         val builtin = setOf(14, 15, 16, 17, 18, 19, 20, 21, 22, 45, 46, 47)
         val customDate = HashSet<String>()
         val xfNumFmt = ArrayList<Int>()
