@@ -69,7 +69,7 @@ class TextEditorActivity : AppCompatActivity() {
     private var readingMode = false
     private var readingInitDone = false
     private var rFontSize = 20f
-    private var rBgIndex = 0
+    private var rBgIndex = FOLLOW_SYSTEM
     private var rLineIdx = 1 // 0 紧凑 1 标准 2 宽松
     private var rTypefaceIdx = 0 // 0 衬线 1 无衬线 2 等宽
     private var rPageMode = 0 // 0 滚动 1 翻页
@@ -105,6 +105,7 @@ class TextEditorActivity : AppCompatActivity() {
         private const val CHUNK_DELAY_MS = 24L
         private const val LIVE_STAT_LIMIT = 500_000
         private const val PREFS = "reader_prefs"
+    private const val FOLLOW_SYSTEM = -1
 
         private val BG_COLORS = intArrayOf(
             0xFFFFFFFF.toInt(), // 白
@@ -378,7 +379,7 @@ class TextEditorActivity : AppCompatActivity() {
         readingMode = true
         stopAuto()
         if (!readingInitDone) {
-            rBgIndex = if (com.limao.unzip.UiTheme.isNight()) 4 else 0
+            rBgIndex = FOLLOW_SYSTEM // 底色默认跟随系统日夜
             readingInitDone = true
         }
         bar.visibility = View.GONE
@@ -465,6 +466,11 @@ class TextEditorActivity : AppCompatActivity() {
         val gesture = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
             override fun onSingleTapUp(e: MotionEvent): Boolean {
+                // 设置面板打开时：点击面板外区域只关闭面板（保留控制层）
+                if (settingsPanel?.visibility == View.VISIBLE) {
+                    settingsPanel?.visibility = View.GONE
+                    return true
+                }
                 val w = readingRoot.width
                 if (rPageMode == 1) {
                     when {
@@ -503,6 +509,10 @@ class TextEditorActivity : AppCompatActivity() {
         // 设置面板（上滑显示，置于最上层）
         settingsPanel = buildSettingsPanel()
         settingsPanel!!.visibility = View.GONE
+        // 关键：面板/栏自身可点击——空隙区域的触摸不会穿透到内容层（否则点一下全收起）
+        settingsPanel!!.isClickable = true
+        topBar!!.isClickable = true
+        quickBar!!.isClickable = true
         readingRoot.addView(settingsPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
         setContentView(readingRoot)
         // 翻页模式下滚动容器不参与（隐藏）
@@ -511,8 +521,10 @@ class TextEditorActivity : AppCompatActivity() {
     }
 
     private fun applyReaderTheme() {
-        val bg = BG_COLORS[rBgIndex]
-        val fg = BG_TEXT_COLORS[rBgIndex]
+        // rBgIndex == FOLLOW_SYSTEM(-1)：底色跟随系统日夜模式
+        val effectiveBg = if (rBgIndex == FOLLOW_SYSTEM) (if (com.limao.unzip.UiTheme.isNight()) 4 else 0) else rBgIndex
+        val bg = BG_COLORS[effectiveBg]
+        val fg = BG_TEXT_COLORS[effectiveBg]
         readingRoot.setBackgroundColor(bg)
         readingScroll?.setBackgroundColor(bg)
         readingText?.apply {
@@ -873,7 +885,7 @@ class TextEditorActivity : AppCompatActivity() {
             text = "A−"; textSize = 16f; setTextColor(0xFFDDDDDD.toInt()); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setPadding(0, dp(6), 0, dp(6))
-            setOnClickListener { rFontSize = (rFontSize - 1f).coerceAtLeast(14f); readerConfigChanged(); rebuildSettingsPanel() }
+            setOnClickListener { rFontSize = (rFontSize - 2f).coerceAtLeast(12f); readerConfigChanged(); rebuildSettingsPanel() }
         })
         fontRow.addView(TextView(this).apply {
             text = "${rFontSize.toInt()}"; textSize = 15f; setTextColor(0xFF64B5FF.toInt()); gravity = Gravity.CENTER
@@ -883,19 +895,29 @@ class TextEditorActivity : AppCompatActivity() {
             text = "A＋"; textSize = 20f; setTextColor(0xFFDDDDDD.toInt()); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setPadding(0, dp(6), 0, dp(6))
-            setOnClickListener { rFontSize = (rFontSize + 1f).coerceAtMost(40f); readerConfigChanged(); rebuildSettingsPanel() }
+            setOnClickListener { rFontSize = (rFontSize + 2f).coerceAtMost(50f); readerConfigChanged(); rebuildSettingsPanel() }
         })
         panel.addView(fontRow)
 
         panel.addView(label("行距"))
         panel.addView(chipRow(LINE_NAMES.toList(), rLineIdx) { rLineIdx = it; readerConfigChanged() })
 
-        panel.addView(label("背景"))
+        panel.addView(label("背景（跟随 = 随系统日夜自动切换）"))
         val bgRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        // 首位「跟随」：底色随系统日夜切换；其后为固定背景
+        bgRow.addView(TextView(this).apply {
+            text = "跟随"; textSize = 13f
+            setTextColor(if (rBgIndex == FOLLOW_SYSTEM) 0xFF0D2B52.toInt() else 0xFF1D1B20.toInt())
+            setBackgroundColor(if (rBgIndex == FOLLOW_SYSTEM) 0xFF64B5FF.toInt() else 0xFF888888.toInt())
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
+            gravity = Gravity.CENTER
+            setOnClickListener { rBgIndex = FOLLOW_SYSTEM; readerConfigChanged(); rebuildSettingsPanel() }
+        })
         BG_NAMES.forEachIndexed { i, name ->
             bgRow.addView(TextView(this).apply {
                 text = name; textSize = 13f
-                setTextColor(if (i == rBgIndex) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
+                setTextColor(if (i == rBgIndex) 0xFF64B5FF.toInt() else 0xFF1D1B20.toInt())
                 setBackgroundColor(BG_COLORS[i])
                 setPadding(dp(14), dp(8), dp(14), dp(8))
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
@@ -937,16 +959,21 @@ class TextEditorActivity : AppCompatActivity() {
             if (i > 0) mainHandler.postDelayed(autoRunnable, 400)
         })
 
-        panel.addView(label("进度跳转"))
+        panel.addView(label("进度跳转（拖动选择，松手跳转）"))
         val jump = SeekBar(this).apply { max = 100; progress = 0 }
         jump.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, value: Int, fromUser: Boolean) {
                 if (!fromUser) return
+                // 拖动中只更新提示文本（实时跳页在大文档上开销大）
+                readingProgress?.text = "跳转到 $value%"
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {
+                val value = sb?.progress ?: return
                 val ft = fullText ?: return
-                val target = (ft.length - 1) * value / 100
+                val target = ((ft.length - 1).coerceAtLeast(0)) * value / 100
                 lastReadOffset = target
                 if (rPageMode == 1) {
-                    pageStarts.clear(); pageStarts.add(0); curPage = 0
                     flipBox?.removeAllViews()
                     jumpToChar(target)
                 } else {
@@ -955,8 +982,6 @@ class TextEditorActivity : AppCompatActivity() {
                 }
                 updateReadingProgress()
             }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
         panel.addView(jump)
         readingProgress = TextView(this).apply {

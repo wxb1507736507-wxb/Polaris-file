@@ -11,8 +11,8 @@ android {
         applicationId = "com.limao.unzip"
         minSdk = 26
         targetSdk = 36
-        versionCode = 30
-        versionName = "0.9.35"
+        versionCode = 31
+        versionName = "0.9.36"
         // Media3 等库的中文翻译使用 zh-rCN / zh-rTW / zh-rHK 限定符，需一并保留
         resourceConfigurations += listOf("zh", "zh-rCN", "zh-rTW", "zh-rHK", "en")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
