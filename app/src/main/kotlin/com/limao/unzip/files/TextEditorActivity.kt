@@ -571,7 +571,17 @@ class TextEditorActivity : AppCompatActivity() {
         val end = minOf(readingPumpPos + CHUNK_CHARS, ft.length)
         tv.append(ft.substring(readingPumpPos, end))
         readingPumpPos = end
-        if (end < ft.length) mainHandler.postDelayed(readingPumpRunnable, CHUNK_DELAY_MS)
+        if (end < ft.length) {
+            mainHandler.postDelayed(readingPumpRunnable, CHUNK_DELAY_MS)
+        } else if (repumpRestoreFrac >= 0) {
+            // 重灌完成：按比例恢复滚动位置
+            val frac = repumpRestoreFrac
+            repumpRestoreFrac = -1f
+            readingScroll?.post {
+                val maxScroll = maxOf(1, (readingScroll?.getChildAt(0)?.height ?: 1) - (readingScroll?.height ?: 1))
+                readingScroll?.scrollTo(0, (maxScroll * frac).toInt())
+            }
+        }
     }
 
     // ---- 翻页模式 ----
@@ -592,20 +602,72 @@ class TextEditorActivity : AppCompatActivity() {
         }
     }
 
-    private fun readerConfigChanged() {
+    /**
+     * 设置变更入口：applyReaderTheme 即时生效（视觉零延迟）；
+     * 需要重排的项（字号/行距/字体）走防抖调度：
+     *   翻页模式 → 锚点单页重分页（一次 computePageEnd）
+     *   滚动模式 → 小文本直接重排；大文本清空分块重灌（不阻塞主线程）
+     */
+    private val relayoutFlipRunnable = Runnable { doRelayoutFlip() }
+    private var repumpRestoreFrac = -1f
+
+    private fun onReaderSettingChanged(needsRelayout: Boolean) {
         applyReaderTheme()
         saveReaderPrefs()
+        if (!needsRelayout) return
         if (rPageMode == 1) {
-            val anchor = if (curPage < pageStarts.size) pageStarts[curPage] else lastReadOffset
-            pageStarts.clear()
-            pageStarts.add(0)
-            curPage = 0
-            flipBox?.removeAllViews()
-            readingRoot.post { jumpToChar(anchor.coerceIn(0, (fullText?.length ?: 1) - 1)) }
+            mainHandler.removeCallbacks(relayoutFlipRunnable)
+            mainHandler.postDelayed(relayoutFlipRunnable, 120)
         } else {
-            // 滚动模式直接重排（文本已全部灌入）
-            updateReadingProgress()
+            val len = fullText?.length ?: 0
+            if (len > 150_000) repumpScroll() // 大文本分块重灌，避免整段重排卡顿
         }
+    }
+
+    private fun doRelayoutFlip() {
+        val ft = fullText ?: return
+        val anchor = (if (curPage < pageStarts.size) pageStarts[curPage] else lastReadOffset)
+            .coerceIn(0, (ft.length - 1).coerceAtLeast(0))
+        pageStarts.clear()
+        pageStarts.add(anchor)
+        curPage = 0
+        flipBox?.removeAllViews()
+        renderFlipPage(anchor)
+        updateReadingProgress()
+    }
+
+    private fun effectiveBgIndex(): Int =
+        if (rBgIndex == FOLLOW_SYSTEM) (if (com.limao.unzip.UiTheme.isNight()) 4 else 0) else rBgIndex
+
+    /** 渲染指定起点的一页（页尾现算一次并缓存为下一页起点） */
+    private fun renderFlipPage(start: Int) {
+        val ft = fullText ?: return
+        val end = if (pageStarts.size >= 2 && pageStarts[1] > start) pageStarts[1]
+        else computePageEnd(start).also { e ->
+            if (e > start && pageStarts.size == 1 && e < ft.length) pageStarts.add(e)
+        }
+        val box = flipBox ?: return
+        box.removeAllViews()
+        val page = TextView(this).apply {
+            text = ft.subSequence(start, end)
+            setTextColor(BG_TEXT_COLORS[effectiveBgIndex()])
+            textSize = rFontSize
+            setTypeface(TYPEFACES[rTypefaceIdx])
+            setLineSpacing(dp(3).toFloat(), LINE_MULTS[rLineIdx])
+            setPadding(dp(26), dp(34), dp(26), dp(34))
+            includeFontPadding = false
+        }
+        box.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    }
+
+    /** 滚动模式大文本：清空 + 分块重灌（每帧增量布局不卡顿），完成后按比例恢复滚动位置 */
+    private fun repumpScroll() {
+        val oldMax = maxOf(1, (readingScroll?.getChildAt(0)?.height ?: 1) - (readingScroll?.height ?: 1))
+        repumpRestoreFrac = (readingScroll?.scrollY ?: 0).toFloat() / oldMax
+        readingPumpPos = 0
+        mainHandler.removeCallbacks(readingPumpRunnable)
+        readingText?.text = ""
+        mainHandler.postDelayed(readingPumpRunnable, CHUNK_DELAY_MS)
     }
 
     /** 二分搜索：从 start 起最多能容纳多少字符（StaticLayout 高度 ≤ 页盒） */
@@ -834,29 +896,44 @@ class TextEditorActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(0xF2151517.toInt())
             setPadding(dp(18), dp(14), dp(18), dp(18))
+            // 面板自身消费点击（空隙区域不穿透到内容层）
+            isClickable = true
         }
+        val chipRefreshers = ArrayList<() -> Unit>()
+
         fun label(labelStr: String) = TextView(this).apply {
             text = labelStr; textSize = 12f; setTextColor(0xFF999999.toInt())
             setPadding(0, dp(10), 0, dp(4))
         }
-        fun chipRow(options: List<String>, current: Int, onPick: (Int) -> Unit): LinearLayout {
+
+        /** 芯片组：点击就地刷新选中态（不重建面板，零延迟） */
+        fun chipRow(options: List<String>, current: () -> Int, onPick: (Int) -> Unit): LinearLayout {
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            val chips = ArrayList<TextView>()
+            fun refresh() {
+                chips.forEachIndexed { i, c ->
+                    val sel = i == current()
+                    c.setTextColor(if (sel) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
+                    c.setBackgroundResource(if (sel) R.drawable.chip_selected else R.drawable.chip_normal)
+                }
+            }
             options.forEachIndexed { i, opt ->
-                row.addView(TextView(this).apply {
+                chips.add(TextView(this).apply {
                     text = opt; textSize = 13f
-                    setTextColor(if (i == current) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
                     setPadding(dp(14), dp(6), dp(14), dp(6))
-                    setBackgroundResource(if (i == current) R.drawable.chip_selected else R.drawable.chip_normal)
+                    setBackgroundResource(if (i == current()) R.drawable.chip_selected else R.drawable.chip_normal)
+                    setTextColor(if (i == current()) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
                     gravity = Gravity.CENTER
                     setOnClickListener {
                         onPick(i)
-                        // 重绘面板选中态
-                        panel.parent?.let { }
-                        rebuildSettingsPanel()
+                        refresh()
+                        chipRefreshers.forEach { it() } // 联动刷新（如跟随/固定背景互斥）
                     }
                 })
             }
+            refresh()
+            chipRefreshers.add { refresh() }
             return row
         }
 
@@ -877,62 +954,79 @@ class TextEditorActivity : AppCompatActivity() {
         panel.addView(bright)
 
         panel.addView(label("字体"))
-        panel.addView(chipRow(TF_NAMES.toList(), rTypefaceIdx) { rTypefaceIdx = it; readerConfigChanged() })
+        panel.addView(chipRow(TF_NAMES.toList(), { rTypefaceIdx }) { rTypefaceIdx = it; onReaderSettingChanged(needsRelayout = true) })
 
         panel.addView(label("字号"))
         val fontRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        val fontSizeLabel = TextView(this).apply {
+            text = "${rFontSize.toInt()}"; textSize = 15f; setTextColor(0xFF64B5FF.toInt()); gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
         fontRow.addView(TextView(this).apply {
             text = "A−"; textSize = 16f; setTextColor(0xFFDDDDDD.toInt()); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setPadding(0, dp(6), 0, dp(6))
-            setOnClickListener { rFontSize = (rFontSize - 2f).coerceAtLeast(12f); readerConfigChanged(); rebuildSettingsPanel() }
+            setOnClickListener { rFontSize = (rFontSize - 2f).coerceAtLeast(12f); fontSizeLabel.text = "${rFontSize.toInt()}"; onReaderSettingChanged(true) }
         })
-        fontRow.addView(TextView(this).apply {
-            text = "${rFontSize.toInt()}"; textSize = 15f; setTextColor(0xFF64B5FF.toInt()); gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        })
+        fontRow.addView(fontSizeLabel)
         fontRow.addView(TextView(this).apply {
             text = "A＋"; textSize = 20f; setTextColor(0xFFDDDDDD.toInt()); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setPadding(0, dp(6), 0, dp(6))
-            setOnClickListener { rFontSize = (rFontSize + 2f).coerceAtMost(50f); readerConfigChanged(); rebuildSettingsPanel() }
+            setOnClickListener { rFontSize = (rFontSize + 2f).coerceAtMost(50f); fontSizeLabel.text = "${rFontSize.toInt()}"; onReaderSettingChanged(true) }
         })
         panel.addView(fontRow)
 
         panel.addView(label("行距"))
-        panel.addView(chipRow(LINE_NAMES.toList(), rLineIdx) { rLineIdx = it; readerConfigChanged() })
+        panel.addView(chipRow(LINE_NAMES.toList(), { rLineIdx }) { rLineIdx = it; onReaderSettingChanged(true) })
 
         panel.addView(label("背景（跟随 = 随系统日夜自动切换）"))
         val bgRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        // 首位「跟随」：底色随系统日夜切换；其后为固定背景
-        bgRow.addView(TextView(this).apply {
-            text = "跟随"; textSize = 13f
-            setTextColor(if (rBgIndex == FOLLOW_SYSTEM) 0xFF0D2B52.toInt() else 0xFF1D1B20.toInt())
-            setBackgroundColor(if (rBgIndex == FOLLOW_SYSTEM) 0xFF64B5FF.toInt() else 0xFF888888.toInt())
-            setPadding(dp(14), dp(8), dp(14), dp(8))
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
-            gravity = Gravity.CENTER
-            setOnClickListener { rBgIndex = FOLLOW_SYSTEM; readerConfigChanged(); rebuildSettingsPanel() }
-        })
-        BG_NAMES.forEachIndexed { i, name ->
-            bgRow.addView(TextView(this).apply {
-                text = name; textSize = 13f
-                setTextColor(if (i == rBgIndex) 0xFF64B5FF.toInt() else 0xFF1D1B20.toInt())
-                setBackgroundColor(BG_COLORS[i])
+        val bgChips = ArrayList<Pair<TextView, Int>>() // chip + 对应 rBgIndex
+        fun refreshBg() {
+            bgChips.forEach { (c, idx) ->
+                val sel = idx == rBgIndex
+                if (idx == FOLLOW_SYSTEM) {
+                    c.setTextColor(if (sel) 0xFF0D2B52.toInt() else 0xFF1D1B20.toInt())
+                    c.setBackgroundColor(if (sel) 0xFF64B5FF.toInt() else 0xFF888888.toInt())
+                } else {
+                    c.setTextColor(if (sel) 0xFF64B5FF.toInt() else 0xFF1D1B20.toInt())
+                    c.setBackgroundColor(BG_COLORS[idx])
+                }
+            }
+        }
+        fun bgChip(label: String, idx: Int) {
+            val c = TextView(this).apply {
+                text = label; textSize = 13f
                 setPadding(dp(14), dp(8), dp(14), dp(8))
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
                 gravity = Gravity.CENTER
-                setOnClickListener { rBgIndex = i; readerConfigChanged(); rebuildSettingsPanel() }
-            })
+                setOnClickListener {
+                    rBgIndex = idx
+                    onReaderSettingChanged(false) // 颜色不影响排版，即时生效
+                    refreshBg()
+                }
+            }
+            bgChips.add(c to idx)
+            bgRow.addView(c)
         }
+        bgChip("跟随", FOLLOW_SYSTEM)
+        BG_NAMES.forEachIndexed { i, name -> bgChip(name, i) }
+        refreshBg()
+        chipRefreshers.add { refreshBg() }
         panel.addView(bgRow)
 
         panel.addView(label("翻页方式"))
         val pmRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        val pmChips = ArrayList<TextView>()
+        fun refreshPm() {
+            pmChips.forEachIndexed { i, c ->
+                c.setTextColor(if (i == rPageMode) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
+            }
+        }
         listOf("上下滚动", "左右翻页").forEachIndexed { i, name ->
-            pmRow.addView(TextView(this).apply {
+            pmChips.add(TextView(this).apply {
                 text = name; textSize = 13f
-                setTextColor(if (i == rPageMode) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
                 setPadding(dp(14), dp(8), dp(14), dp(8))
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
                 gravity = Gravity.CENTER
@@ -940,18 +1034,19 @@ class TextEditorActivity : AppCompatActivity() {
                     lastReadOffset = currentReadingOffset()
                     rPageMode = i
                     saveReaderPrefs()
+                    refreshPm()
                     readingScroll?.visibility = if (i == 0) View.VISIBLE else View.GONE
                     flipBox?.visibility = if (i == 1) View.VISIBLE else View.GONE
-                    rebuildSettingsPanel()
                     if (i == 1) setupFlipReader() else setupScrollReader()
                     updateReadingProgress()
                 }
             })
+            refreshPm()
         }
         panel.addView(pmRow)
 
         panel.addView(label("自动阅读（翻页：慢20s/中10s/快5s · 滚动：匀速）"))
-        panel.addView(chipRow(AUTO_NAMES.toList(), rAutoIdx) { i ->
+        panel.addView(chipRow(AUTO_NAMES.toList(), { rAutoIdx }) { i ->
             rAutoIdx = i
             saveReaderPrefs()
             refreshQuickBar()
@@ -990,18 +1085,6 @@ class TextEditorActivity : AppCompatActivity() {
         }
         panel.addView(readingProgress)
         return panel
-    }
-
-    private var seekBarThumb: Any? = null // 占位（避免未使用告警）
-
-    private fun rebuildSettingsPanel() {
-        val old = settingsPanel ?: return
-        val lp = old.layoutParams
-        val visible = old.visibility == View.VISIBLE
-        readingRoot.removeView(old)
-        settingsPanel = buildSettingsPanel()
-        settingsPanel!!.visibility = if (visible) View.VISIBLE else View.GONE
-        readingRoot.addView(settingsPanel, lp)
     }
 
     private fun currentReadingOffset(): Int {
