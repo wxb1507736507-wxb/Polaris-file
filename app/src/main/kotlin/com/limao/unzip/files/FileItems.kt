@@ -247,12 +247,16 @@ object FileItems {
 
     // ---- 目录 ----
 
+    /** 是否内部写入临时文件（.part）：解压/压缩的半截产物，不应对用户展示或可点开。 */
+    fun isInternalTemp(name: String): Boolean =
+        name.endsWith(".part") || name.endsWith(".polaris.tmp")
+
     fun listDir(dir: File, archiveOnly: Boolean): List<Entry> {
         val files = dir.listFiles() ?: return emptyList()
         val dirs = files.filter { it.isDirectory && !it.name.startsWith(".") }.map {
             Entry(it.name, it.absolutePath, null, 0, it.lastModified(), true, "📂", "文件夹")
         }.sortedBy { it.name.lowercase() }
-        val fs = files.filter { it.isFile && (!archiveOnly || ArchiveScanner.isArchive(it.name)) }
+        val fs = files.filter { it.isFile && !isInternalTemp(it.name) && (!archiveOnly || ArchiveScanner.isArchive(it.name)) }
             .map { Entry(it.name, it.absolutePath, null, it.length(), it.lastModified(), false, iconFor(it.name), typeLabel(it.name)) }
             .sortedByDescending { it.time }
         return dirs + fs
@@ -339,6 +343,7 @@ object FileItems {
         }
         val seen = HashSet<String>()
         val all = merged.sortedByDescending { it.time }
+            .filter { !isInternalTemp(it.name) }
             .filter { seen.add(it.name + ":" + (it.path ?: it.uri.toString())) }
         val mediaTop = all.filter { isMediaFile(it.name) }.take(mediaQuota)
         val fileTop = all.filter { !isMediaFile(it.name) }.take(fileQuota)

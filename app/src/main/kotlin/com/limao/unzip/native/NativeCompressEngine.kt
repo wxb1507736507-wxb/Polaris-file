@@ -26,6 +26,23 @@ class NativeCompressEngine(override val format: CreateFormat) : com.limao.unzip.
             ?: throw EngineException(EngineErrorCode.IO, "native 压缩引擎需要 FdCompressSource")
         val outFd = output.beginFd()
 
+        // beginFd 已创建 .part：此后任何异常路径都必须 discard，避免半截临时文件泄漏到用户目录
+        try {
+            return compressLocked(source, output, listener, fdSource, outFd, started)
+        } catch (t: Throwable) {
+            runCatching { output.discard() }
+            throw t
+        }
+    }
+
+    private fun compressLocked(
+        source: CompressSource,
+        output: ArchiveOutput,
+        listener: EngineListener,
+        fdSource: FdCompressSource,
+        outFd: Int,
+        started: Long,
+    ): ExtractResult {
         // 物化源清单（有界）
         val metas = ArrayList<Meta>(128)
         source.scan { c -> metas.add(Meta(c.pathString(), c.uncompressedSize, c.mtimeMs, c.isDirectory)) }

@@ -350,6 +350,9 @@ class FileListActivity : AppCompatActivity() {
                 ),
             )
             val r = kotlinx.coroutines.runBlocking { job.await() }
+            if (r !is com.limao.unzip.engine.api.ExtractResult.Completed) {
+                runCatching { File(out.parentFile, out.name + ".part").delete() }
+            }
             runOnUiThread {
                 toast(getString(if (r is com.limao.unzip.engine.api.ExtractResult.Completed) R.string.compress_done else R.string.op_failed, out.name))
                 if (r is com.limao.unzip.engine.api.ExtractResult.Completed) reload()
@@ -465,7 +468,8 @@ class FileListActivity : AppCompatActivity() {
 
     private fun applyFilter() {
         shown = items.filter { e ->
-            (mode != "docs" || docFilter == 0 || FileItems.docGroup(e.name) == docFilter - 1) &&
+            !FileItems.isInternalTemp(e.name) &&
+                (mode != "docs" || docFilter == 0 || FileItems.docGroup(e.name) == docFilter - 1) &&
                 (searchQuery.isEmpty() || e.name.contains(searchQuery, ignoreCase = true))
         }
         countView.text = if (searchQuery.isEmpty()) {

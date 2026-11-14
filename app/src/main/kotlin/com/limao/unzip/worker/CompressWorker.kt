@@ -56,15 +56,16 @@ class CompressWorker(
 
     private suspend fun runPathCompression(srcPath: String, dstPath: String): Result {
         val format = CreateFormat.valueOf(inputData.getString(KEY_FORMAT) ?: CreateFormat.ZIP.name)
+        val dst = java.io.File(dstPath)
         val request = CompressRequest(
             source = com.limao.unzip.io.DirFdCompressSource(java.io.File(srcPath)),
-            output = com.limao.unzip.io.AndroidFileArchiveOutput(java.io.File(dstPath)),
+            output = com.limao.unzip.io.AndroidFileArchiveOutput(dst),
             format = format,
         )
-        return runRequest(request, java.io.File(dstPath).name)
+        return runRequest(request, dst.name, localPartFile = java.io.File(dst.parentFile, dst.name + ".part"))
     }
 
-    private suspend fun runRequest(request: CompressRequest, archiveName: String): Result {
+    private suspend fun runRequest(request: CompressRequest, archiveName: String, localPartFile: java.io.File? = null): Result {
         val job = ObjectGraph.compressor.submit(request)
         ObjectGraph.activeJobId.value = id
 
@@ -85,11 +86,13 @@ class CompressWorker(
                     Result.success()
                 }
                 is ExtractResult.Aborted -> {
+                    runCatching { localPartFile?.delete() }
                     Notifications.showFinal(applicationContext, id.toString(), failed = false,
                         text = "已取消压缩（$archiveName）")
                     Result.failure()
                 }
                 is ExtractResult.Failed -> {
+                    runCatching { localPartFile?.delete() }
                     Notifications.showFinal(applicationContext, id.toString(), failed = true,
                         text = result.error.title + "：" + result.error.message)
                     Result.failure()
@@ -99,8 +102,14 @@ class CompressWorker(
             job.cancel()
             withTimeoutOrNull(ExtractionWorker.GRACEFUL_ABORT_MS) { runCatching { job.await() } }
             notifier.cancel()
+            runCatching { localPartFile?.delete() }
             Notifications.showFinal(applicationContext, id.toString(), failed = false, text = "已取消压缩")
             throw ce
+        } catch (t: Throwable) {
+            // 引擎抛出的异常（扫描失败等）：同样清理 .part，避免半截临时文件泄漏
+            notifier.cancel()
+            runCatching { localPartFile?.delete() }
+            throw t
         }
     }
 
