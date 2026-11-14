@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.limao.unzip.R
 import com.limao.unzip.files.ProgressActivity
+import com.limao.unzip.files.office.OfficeViewerActivity
 import com.limao.unzip.files.TextEditorActivity
 import com.limao.unzip.files.ImagePreviewActivity
 import com.limao.unzip.files.PdfReaderActivity
@@ -51,7 +52,9 @@ object FileOpener {
                 Intent(activity, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_PATH, path),
             )
 
-            OfficeText.supported(name) && path != null -> openOffice(activity, name, path)
+            isOfficeFile(name) && path != null -> activity.startActivity(
+                Intent(activity, OfficeViewerActivity::class.java).putExtra(OfficeViewerActivity.EXTRA_PATH, path),
+            )
 
             FileItems.isTextName(name) && path != null -> openEditor(activity, File(path))
 
@@ -94,36 +97,10 @@ object FileOpener {
         )
     }
 
-    private val OFFICE_MIMES = mapOf(
-        "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "xlsx" to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "pptx" to "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    )
-
-    /**
-     * Office 文件：优先调起设备上安装的 Office 应用（WPS/微软 Office 等）以正确样式查看；
-     * 设备上没有 Office 应用时，回退到应用内文本提取预览。
-     */
-    fun openOffice(activity: Activity, name: String, path: String) {
-        val mime = OFFICE_MIMES[name.substringAfterLast('.', "").lowercase()]
-        val viewIntent = if (mime != null) {
-            Intent(Intent.ACTION_VIEW).apply {
-                val uri = androidx.core.content.FileProvider.getUriForFile(
-                    activity, "${activity.packageName}.fileprovider", File(path),
-                )
-                setDataAndType(uri, mime)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-        } else null
-        if (viewIntent != null) {
-            try {
-                activity.startActivity(viewIntent)
-            } catch (_: ActivityNotFoundException) {
-                openEditor(activity, File(path))
-            }
-        } else {
-            openEditor(activity, File(path))
-        }
+    /** Office 文件（docx/xlsx/pptx 内建渲染；doc 旧格式给出内建提示页） */
+    fun isOfficeFile(name: String): Boolean {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        return ext in setOf("docx", "xlsx", "pptx", "doc")
     }
 
     /** 压缩包打开：有解压记录先询问（打开目录/重新解压），否则直接解压。首页与分类页共用。 */

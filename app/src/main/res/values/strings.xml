@@ -155,6 +155,10 @@
     <string name="gif_quality_hd">高清（抖动）</string>
     <string name="gif_phase_palette">采样调色板</string>
     <string name="gif_phase_encode">编码帧</string>
+    <string name="office_empty">文档内容为空</string>
+    <string name="office_failed">无法解析文档：%1$s</string>
+    <string name="office_legacy_doc">旧版 .doc 为二进制格式，暂不支持内建预览。请用 Office/WPS 另存为 .docx 后即可在软件内查看。</string>
+    <string name="office_unknown">暂不支持预览此格式</string>
     <string name="gif_pick_source">选择视频或图片</string>
     <string name="gif_converting">正在转换 GIF…</string>
     <string name="gif_done">GIF 已保存：%1$s</string>

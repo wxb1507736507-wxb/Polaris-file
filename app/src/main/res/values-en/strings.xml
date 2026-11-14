@@ -155,6 +155,10 @@
     <string name="gif_quality_hd">High (dithered)</string>
     <string name="gif_phase_palette">Building palette</string>
     <string name="gif_phase_encode">Encoding frames</string>
+    <string name="office_empty">Document is empty</string>
+    <string name="office_failed">Failed to parse document: %1$s</string>
+    <string name="office_legacy_doc">Legacy .doc is a binary format and cannot be previewed in-app. Save it as .docx with Office/WPS to view it here.</string>
+    <string name="office_unknown">Preview not supported for this format</string>
     <string name="gif_pick_source">Pick a video or image</string>
     <string name="gif_converting">Converting to GIF…</string>
     <string name="gif_done">GIF saved: %1$s</string>

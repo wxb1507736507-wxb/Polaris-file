@@ -5,20 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- 允许将 Office 文件交给设备上安装的 Office 应用查看 -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" />
-        </intent>
-    </queries>
+    <!-- Office 全部内建渲染，不再查询外部 Office 应用 -->
 
     <!-- 前台解压服务（API 34+ 要求声明类型） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -67,6 +54,11 @@
 
         <activity
             android:name=".files.GifConvertActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
+
+        <activity
+            android:name=".files.office.OfficeViewerActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize" />
 
