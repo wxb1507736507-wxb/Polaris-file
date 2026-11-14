@@ -2,6 +2,7 @@ package com.limao.unzip.files
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
@@ -114,8 +115,12 @@ object FileOpener {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
         } else null
-        if (viewIntent != null && activity.packageManager.resolveActivity(viewIntent, 0) != null) {
-            activity.startActivity(viewIntent)
+        if (viewIntent != null) {
+            try {
+                activity.startActivity(viewIntent)
+            } catch (_: ActivityNotFoundException) {
+                openEditor(activity, File(path))
+            }
         } else {
             openEditor(activity, File(path))
         }

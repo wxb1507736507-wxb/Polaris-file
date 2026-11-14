@@ -83,6 +83,9 @@
     <string name="player_local_audio">本地音频</string>
     <string name="mine_theme">外观</string>
     <string name="editor_save_failed">保存失败：文件可能为只读或存储不可写</string>
+    <string name="editor_readonly">只读预览，无法保存</string>
+    <string name="editor_loading">正在加载中，请稍候…</string>
+    <string name="editor_single_line_preview">超长单行文件，仅预览前 1MB（保存已禁用）</string>
     <string name="theme_light">日间模式</string>
     <string name="theme_dark">夜间模式</string>
     <string name="theme_system">跟随系统</string>
@@ -130,11 +133,32 @@
     <string name="editor_save">保存</string>
     <string name="editor_modified">● 已修改</string>
     <string name="editor_saved">已保存</string>
-    <string name="editor_too_large">文件过大（超过 5MB），无法编辑</string>
+    <string name="editor_too_large">文件过大（超过 50MB），无法打开</string>
     <string name="editor_back_save">保存修改？</string>
     <string name="editor_discard">放弃</string>
     <string name="editor_save_btn">保存</string>
     <string name="editor_status">%1$d 行 · %2$d 字符</string>
+    <string name="rename_ext_confirm">格式将从 %1$s 更改为 %2$s，确定更改格式吗？</string>
+    <string name="reading_mode">阅读模式</string>
+    <string name="edit_mode">编辑模式</string>
+    <string name="reader_office_unsupported">Office 预览不支持阅读模式</string>
+    <string name="gif_tool_title">GIF 转换</string>
+    <string name="gif_tool_desc">视频/动图 → GIF 表情包</string>
+    <string name="btn_pick_file">选择文件</string>
+    <string name="gif_none_selected">未选择文件</string>
+    <string name="gif_convert_start">开始转换</string>
+    <string name="gif_opt_fps">帧率 FPS</string>
+    <string name="gif_opt_duration">时长上限</string>
+    <string name="gif_opt_width">宽度</string>
+    <string name="gif_opt_quality">画质</string>
+    <string name="gif_quality_fast">高速</string>
+    <string name="gif_quality_hd">高清（抖动）</string>
+    <string name="gif_phase_palette">采样调色板</string>
+    <string name="gif_phase_encode">编码帧</string>
+    <string name="gif_pick_source">选择视频或图片</string>
+    <string name="gif_converting">正在转换 GIF…</string>
+    <string name="gif_done">GIF 已保存：%1$s</string>
+    <string name="gif_failed">转换失败：%1$s</string>
 
     <!-- 解压进度弹层 -->
     <string name="progress_title">正在解压</string>
@@ -169,4 +193,15 @@
     <string name="webdav_pick_local">选择要上传的本地文件</string>
     <string name="webdav_upload_done">已上传：</string>
     <string name="webdav_no_local">暂无可上传的本地文件（先从网盘下载或解压）</string>
+
+    <!-- 视频/音频播放器 -->
+    <string name="player_options">播放器选项</string>
+    <string name="player_repeat">循环播放：%1$s</string>
+    <string name="player_repeat_one">单曲循环</string>
+    <string name="player_repeat_all">列表循环</string>
+    <string name="player_repeat_off">关闭</string>
+    <string name="player_speed">播放速度</string>
+    <string name="player_speed_value">播放速度：%1$s</string>
+    <string name="player_fallback_unsupported">当前引擎（平台回退）不支持速度与循环</string>
+    <string name="player_lossless">无损解码直出</string>
 </resources>

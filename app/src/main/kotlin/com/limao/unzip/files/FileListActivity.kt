@@ -269,11 +269,32 @@ class FileListActivity : AppCompatActivity() {
 
     private fun opRenameSelected() {
         val e = selection.values.firstOrNull() ?: return
+        renameEntry(e)
+    }
+
+    /**
+     * 重命名（支持更改扩展名以更改格式）。
+     * 扩展名变化时先确认一次，确认后才执行重命名。
+     */
+    private fun renameEntry(e: Entry) {
         askName(getString(R.string.ops_rename), e.name) { newName ->
             if (newName.isEmpty() || newName == e.name) return@askName
             val target = File(e.path!!).parentFile?.let { File(it, newName) } ?: return@askName
             if (target.exists()) { toast(getString(R.string.name_exists)); return@askName }
-            if (File(e.path!!).renameTo(target)) { toast(getString(R.string.renamed_ok)); reload() } else toast(getString(R.string.op_failed))
+            val oldExt = e.name.substringAfterLast('.', "")
+            val newExt = newName.substringAfterLast('.', "")
+            val extChanged = !e.isDir && oldExt != newExt && (oldExt.isNotEmpty() || newExt.isNotEmpty())
+            fun doRename() {
+                if (File(e.path!!).renameTo(target)) { toast(getString(R.string.renamed_ok)); reload() } else toast(getString(R.string.op_failed))
+            }
+            if (extChanged) {
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.ops_rename))
+                    .setMessage(getString(R.string.rename_ext_confirm, oldExt.ifEmpty { "—" }, newExt.ifEmpty { "—" }))
+                    .setPositiveButton("OK") { _, _ -> doRename() }
+                    .setNegativeButton(getString(R.string.btn_cancel), null)
+                    .show()
+            } else doRename()
         }
     }
 
@@ -518,12 +539,7 @@ class FileListActivity : AppCompatActivity() {
         val actions = ArrayList<Pair<String, () -> Unit>>()
         if (e.path != null) {
             if (isTextName(e.name)) actions.add(getString(R.string.ops_edit) to { openEditor(File(e.path!!)) })
-            actions.add(getString(R.string.ops_rename) to { askName(getString(R.string.ops_rename), e.name) { newName ->
-                if (newName.isEmpty() || newName == e.name) return@askName
-                val target = File(e.path!!).parentFile?.let { File(it, newName) } ?: return@askName
-                if (target.exists()) { toast(getString(R.string.name_exists)); return@askName }
-                if (File(e.path!!).renameTo(target)) { toast(getString(R.string.renamed_ok)); reload() } else toast(getString(R.string.toast_cant_open, e.name))
-            } })
+            actions.add(getString(R.string.ops_rename) to { renameEntry(e) })
             actions.add(getString(R.string.ops_delete) to {
                 AlertDialog.Builder(this)
                     .setMessage(getString(R.string.delete_confirm, e.name))

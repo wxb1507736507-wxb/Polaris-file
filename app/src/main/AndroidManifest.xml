@@ -66,6 +66,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".files.GifConvertActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
+
+        <activity
             android:name=".files.StorageAnalysisActivity"
             android:exported="false" />
 

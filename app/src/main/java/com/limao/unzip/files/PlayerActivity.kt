@@ -171,7 +171,7 @@ class PlayerActivity : AppCompatActivity() {
                     info.bitRate?.let { "${it / 1000} kbps" },
                     info.sampleRate?.let { "${it / 1000} kHz" },
                     info.genre?.takeIf { it.isNotBlank() },
-                ).joinToString(" · ").ifEmpty { "无损解码直出" }
+                ).joinToString(" · ").ifEmpty { getString(R.string.player_lossless) }
             }
             // 元数据未带出前的占位
             findViewById<TextView>(R.id.audio_title)?.text = file.nameWithoutExtension
@@ -332,7 +332,7 @@ class PlayerActivity : AppCompatActivity() {
             setPadding(dp(8), dp(16), dp(8), dp(24))
         }
         container.addView(TextView(this).apply {
-            text = "播放器选项"
+            text = getString(R.string.player_options)
             textSize = 15f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(if (com.limao.unzip.UiTheme.isNight()) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt())
@@ -352,11 +352,11 @@ class PlayerActivity : AppCompatActivity() {
 
         if (exo != null) {
             val repeatLabel = when (exo?.repeatMode) {
-                Player.REPEAT_MODE_ONE -> "单曲循环"
-                Player.REPEAT_MODE_ALL -> "列表循环"
-                else -> "关闭"
+                Player.REPEAT_MODE_ONE -> getString(R.string.player_repeat_one)
+                Player.REPEAT_MODE_ALL -> getString(R.string.player_repeat_all)
+                else -> getString(R.string.player_repeat_off)
             }
-            actionRow("循环播放：$repeatLabel") {
+            actionRow(getString(R.string.player_repeat, repeatLabel)) {
                 exo?.repeatMode = when (exo?.repeatMode) {
                     Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
                     Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
@@ -365,12 +365,12 @@ class PlayerActivity : AppCompatActivity() {
                 sheet.dismiss()
                 showPlayerActions()
             }
-            actionRow("播放速度：$speedLabel") {
+            actionRow(getString(R.string.player_speed_value, speedLabel)) {
                 sheet.dismiss()
                 showSpeedSheet()
             }
         } else {
-            actionRow("当前引擎（平台回退）不支持速度与循环") { }
+            actionRow(getString(R.string.player_fallback_unsupported)) { }
         }
         sheet.setContentView(container)
         sheet.show()
@@ -385,7 +385,7 @@ class PlayerActivity : AppCompatActivity() {
             setPadding(dp(8), dp(16), dp(8), dp(24))
         }
         container.addView(TextView(this).apply {
-            text = "播放速度"
+            text = getString(R.string.player_speed)
             textSize = 15f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(if (com.limao.unzip.UiTheme.isNight()) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt())

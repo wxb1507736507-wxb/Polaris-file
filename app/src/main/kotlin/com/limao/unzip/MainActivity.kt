@@ -410,6 +410,14 @@ class MainActivity : AppCompatActivity() {
                 )
             })
         })
+
+        // ---- GIF 表情包 ----
+        page.addView(sectionLabel(getString(R.string.gif_tool_title)))
+        page.addView(m3Card { card ->
+            card.addView(settingsRow(
+                "🎞️", getString(R.string.gif_tool_title), getString(R.string.gif_tool_desc),
+            ) { com.limao.unzip.files.GifConvertActivity.launch(this@MainActivity) })
+        })
         return scroll
     }
 

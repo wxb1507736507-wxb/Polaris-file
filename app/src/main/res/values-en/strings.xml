@@ -83,6 +83,9 @@
     <string name="player_local_audio">Local audio</string>
     <string name="mine_theme">Appearance</string>
     <string name="editor_save_failed">Save failed: file may be read-only or storage unavailable</string>
+    <string name="editor_readonly">Read-only preview, cannot save</string>
+    <string name="editor_loading">Loading, please wait…</string>
+    <string name="editor_single_line_preview">Very long single-line file: preview only (first 1MB)</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Night</string>
     <string name="theme_system">System</string>
@@ -130,11 +133,32 @@
     <string name="editor_save">Save</string>
     <string name="editor_modified">● modified</string>
     <string name="editor_saved">Saved</string>
-    <string name="editor_too_large">File too large (&gt;5MB) to edit</string>
+    <string name="editor_too_large">File too large (&gt;50MB) to open</string>
     <string name="editor_back_save">Save changes?</string>
     <string name="editor_discard">Discard</string>
     <string name="editor_save_btn">Save</string>
     <string name="editor_status">%1$d lines · %2$d chars</string>
+    <string name="rename_ext_confirm">Format will change from %1$s to %2$s. Change format?</string>
+    <string name="reading_mode">Reading mode</string>
+    <string name="edit_mode">Edit mode</string>
+    <string name="reader_office_unsupported">Reading mode not available for Office preview</string>
+    <string name="gif_tool_title">GIF Converter</string>
+    <string name="gif_tool_desc">Video/animated image → GIF sticker</string>
+    <string name="btn_pick_file">Pick file</string>
+    <string name="gif_none_selected">No file selected</string>
+    <string name="gif_convert_start">Convert</string>
+    <string name="gif_opt_fps">Frame rate FPS</string>
+    <string name="gif_opt_duration">Max duration</string>
+    <string name="gif_opt_width">Width</string>
+    <string name="gif_opt_quality">Quality</string>
+    <string name="gif_quality_fast">Fast</string>
+    <string name="gif_quality_hd">High (dithered)</string>
+    <string name="gif_phase_palette">Building palette</string>
+    <string name="gif_phase_encode">Encoding frames</string>
+    <string name="gif_pick_source">Pick a video or image</string>
+    <string name="gif_converting">Converting to GIF…</string>
+    <string name="gif_done">GIF saved: %1$s</string>
+    <string name="gif_failed">Conversion failed: %1$s</string>
 
     <!-- Extraction progress -->
     <string name="progress_title">Extracting</string>
@@ -169,4 +193,15 @@
     <string name="webdav_pick_local">Pick a local file to upload</string>
     <string name="webdav_upload_done">Uploaded: </string>
     <string name="webdav_no_local">No local files to upload yet</string>
+
+    <!-- Player -->
+    <string name="player_options">Player options</string>
+    <string name="player_repeat">Repeat: %1$s</string>
+    <string name="player_repeat_one">Repeat one</string>
+    <string name="player_repeat_all">Repeat all</string>
+    <string name="player_repeat_off">Off</string>
+    <string name="player_speed">Playback speed</string>
+    <string name="player_speed_value">Playback speed: %1$s</string>
+    <string name="player_fallback_unsupported">Playback speed and repeat are unavailable with the platform fallback engine</string>
+    <string name="player_lossless">Lossless direct output</string>
 </resources>
