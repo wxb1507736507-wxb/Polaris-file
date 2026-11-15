@@ -20,6 +20,8 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.core.content.ContextCompat
 import com.limao.unzip.R
 import java.io.BufferedReader
@@ -85,9 +87,30 @@ class TextEditorActivity : AppCompatActivity() {
     private var overlay: View? = null
     private var topBar: LinearLayout? = null
     private var quickBar: LinearLayout? = null
-    private var settingsPanel: LinearLayout? = null
+    private var settingsPanel: View? = null
+    private var fontSizeLabel: TextView? = null
+    private val chipRefreshers = ArrayList<() -> Unit>()
     private var readingProgress: TextView? = null
     private var topProgress: TextView? = null
+    private var controlBar: LinearLayout? = null
+    private var jumpSeek: SeekBar? = null
+
+    // 目录（章节）
+    private var tocMask: View? = null
+    private var tocPanel: LinearLayout? = null
+    private var tocList: RecyclerView? = null
+    private var tocCountLabel: TextView? = null
+    private var chapters: List<Pair<String, Int>>? = null // 标题 → 字符偏移
+
+    // 拖动跟手翻页
+    private var dragStartX = 0f
+    private var dragStartY = 0f
+    private var dragLastX = 0f
+    private var dragLastT = 0L
+    private var dragActive = false
+    private var dragDir = 0
+    private var currentPageView: TextView? = null
+    private var adjacentPage: TextView? = null
 
     // 翻页状态
     private val pageStarts = ArrayList<Int>()
@@ -146,6 +169,15 @@ class TextEditorActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 读取持久化的阅读器设置（翻页模式/字号/背景/亮度等）
+        rFontSize = prefs.getFloat("rf", 20f)
+        rBgIndex = prefs.getInt("bg", FOLLOW_SYSTEM)
+        rLineIdx = prefs.getInt("ln", 1)
+        rTypefaceIdx = prefs.getInt("tf", 0)
+        rPageMode = prefs.getInt("pm", 0)
+        rAutoIdx = prefs.getInt("au", 0)
+        rBrightness = prefs.getFloat("br", 1.0f)
+        readingInitDone = true
         val path = intent.getStringExtra(EXTRA_PATH) ?: run { finish(); return }
         file = File(path)
         val night = com.limao.unzip.UiTheme.isNight()
@@ -378,10 +410,6 @@ class TextEditorActivity : AppCompatActivity() {
     private fun enterReadingMode() {
         readingMode = true
         stopAuto()
-        if (!readingInitDone) {
-            rBgIndex = FOLLOW_SYSTEM // 底色默认跟随系统日夜
-            readingInitDone = true
-        }
         bar.visibility = View.GONE
         status.visibility = View.GONE
         edit.visibility = View.GONE
@@ -446,57 +474,94 @@ class TextEditorActivity : AppCompatActivity() {
         }
         topBar!!.addView(topProgress)
 
-        // 快捷栏：编辑 / 自动阅读 / 设置
-        quickBar = LinearLayout(this).apply {
+        // 控制栏（番茄式两行）：进度行 + 功能行
+        controlBar = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             setBackgroundColor(0xF2151517.toInt())
-            setPadding(dp(12), dp(6), dp(12), dp(6))
-            gravity = Gravity.CENTER
+            setPadding(dp(12), dp(4), dp(12), dp(8))
+            isClickable = true
         }
-        fun quick(label: String, onClick: () -> Unit) = TextView(this).apply {
-            text = label; textSize = 14f; setTextColor(0xFFFFFFFF.toInt()); gravity = Gravity.CENTER
+        // 行1：上一页 | 进度滑条 | 下一页
+        val progressRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        progressRow.addView(TextView(this).apply {
+            text = "上一页"; textSize = 13f; setTextColor(0xFFFFFFFF.toInt())
+            setPadding(dp(6), dp(8), dp(6), dp(8))
+            setOnClickListener { turnPage(-1) }
+        })
+        jumpSeek = SeekBar(this).apply {
+            max = 100
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar?, value: Int, fromUser: Boolean) {
+                    if (fromUser) topProgress?.text = "跳转 $value%"
+                }
+                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStopTrackingTouch(sb: SeekBar?) { jumpToPercent(sb?.progress ?: 0) }
+            })
+        }
+        progressRow.addView(jumpSeek)
+        progressRow.addView(TextView(this).apply {
+            text = "下一页"; textSize = 13f; setTextColor(0xFFFFFFFF.toInt())
+            setPadding(dp(6), dp(8), dp(6), dp(8))
+            setOnClickListener { turnPage(1) }
+        })
+        controlBar!!.addView(progressRow)
+        // 行2：目录 | 自动 | 夜间 | 设置 | 编辑
+        val iconRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        fun icon(label: String, onClick: () -> Unit) = TextView(this).apply {
+            text = label; textSize = 13f; setTextColor(0xFFFFFFFF.toInt()); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setPadding(0, dp(8), 0, dp(8))
             setOnClickListener { onClick() }
         }
-        quickBar!!.addView(quick("📖 " + getString(R.string.edit_mode)) { exitReadingMode() })
-        quickBar!!.addView(quick(autoLabel()) { toggleAuto() })
-        quickBar!!.addView(quick("⚙ 设置") { toggleSettings() })
+        iconRow.addView(icon("☰ 目录") { toggleToc() })
+        iconRow.addView(icon(autoLabel()) { toggleAuto() })
+        iconRow.addView(icon("🌙 夜间") { toggleNightBg() })
+        iconRow.addView(icon("⚙ 设置") { toggleSettings() })
+        iconRow.addView(icon("📖 编辑") { exitReadingMode() })
+        controlBar!!.addView(iconRow)
+        quickBar = controlBar!!
 
-        // 点击/手势：中央切换控制层；翻页模式下左右区域翻页
-        val gesture = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDown(e: MotionEvent): Boolean = true
-            override fun onSingleTapUp(e: MotionEvent): Boolean {
-                // 设置面板打开时：点击面板外区域只关闭面板（保留控制层）
-                if (settingsPanel?.visibility == View.VISIBLE) {
-                    settingsPanel?.visibility = View.GONE
-                    return true
-                }
-                val w = readingRoot.width
-                if (rPageMode == 1) {
-                    when {
-                        e.x < w / 3f -> turnPage(-1)
-                        e.x > w * 2f / 3f -> turnPage(1)
-                        else -> toggleControls()
-                    }
-                } else {
-                    toggleControls()
-                }
-                return true
-            }
-
-            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
-                if (rPageMode == 1 && kotlin.math.abs(vx) > kotlin.math.abs(vy) && kotlin.math.abs(vx) > 600) {
-                    if (vx < 0) turnPage(1) else turnPage(-1)
-                    return true
-                }
-                return false
-            }
-        })
+        // 触摸处理：翻页模式支持拖动跟手翻页 + 点击判定（左/中/右区域）；滚动模式转发给 ScrollView
         val touchInterceptor = View(this).apply {
             setOnTouchListener { v, e ->
-                gesture.onTouchEvent(e)
-                // 滚动模式把触摸交给 ScrollView 自身滚动
-                if (rPageMode == 0) readingScroll!!.dispatchTouchEvent(e)
+                when (e.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        dragStartX = e.x; dragStartY = e.y; dragLastX = e.x; dragLastT = System.currentTimeMillis()
+                        dragActive = false; dragDir = 0
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (rPageMode == 1 && !tocPanelVisible()) {
+                            val dx = e.x - dragStartX
+                            if (!dragActive && kotlin.math.abs(dx) > dp(14)) {
+                                dragDir = if (dx < 0) 1 else -1
+                                dragActive = prepareAdjacent(dragDir)
+                            }
+                            if (dragActive) followDrag(dx)
+                        } else if (rPageMode == 0) {
+                            readingScroll!!.dispatchTouchEvent(e)
+                        }
+                        dragLastX = e.x; dragLastT = System.currentTimeMillis()
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        if (rPageMode == 1 && !tocPanelVisible()) {
+                            if (dragActive) {
+                                endDrag(e.x - dragStartX)
+                            } else if (e.actionMasked == MotionEvent.ACTION_UP) {
+                                handleTap(e.x)
+                            }
+                        } else if (rPageMode == 0) {
+                            readingScroll!!.dispatchTouchEvent(e)
+                            val still = kotlin.math.abs(e.y - dragStartY) < dp(10) &&
+                                kotlin.math.abs(e.x - dragStartX) < dp(10)
+                            if (still && e.actionMasked == MotionEvent.ACTION_UP) handleTap(e.x)
+                        }
+                        dragActive = false
+                    }
+                }
                 true
             }
         }
@@ -513,7 +578,8 @@ class TextEditorActivity : AppCompatActivity() {
         settingsPanel!!.isClickable = true
         topBar!!.isClickable = true
         quickBar!!.isClickable = true
-        readingRoot.addView(settingsPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
+        // 固定高度底部面板（WRAP_CONTENT 在内容后建时会测量塌陷），内部 ScrollView 滚动
+        readingRoot.addView(settingsPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(330), Gravity.BOTTOM))
         setContentView(readingRoot)
         // 翻页模式下滚动容器不参与（隐藏）
         readingScroll!!.visibility = if (rPageMode == 1) View.GONE else View.VISIBLE
@@ -658,6 +724,7 @@ class TextEditorActivity : AppCompatActivity() {
             includeFontPadding = false
         }
         box.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        currentPageView = page
     }
 
     /** 滚动模式大文本：清空 + 分块重灌（每帧增量布局不卡顿），完成后按比例恢复滚动位置 */
@@ -668,6 +735,243 @@ class TextEditorActivity : AppCompatActivity() {
         mainHandler.removeCallbacks(readingPumpRunnable)
         readingText?.text = ""
         mainHandler.postDelayed(readingPumpRunnable, CHUNK_DELAY_MS)
+    }
+
+    // ---- 拖动跟手翻页（平移动画） ----
+
+    /** 准备相邻页视图；返回是否可用 */
+    private fun prepareAdjacent(dir: Int): Boolean {
+        val ft = fullText ?: return false
+        val box = flipBox ?: return false
+        val w = readingRoot.width
+        val adj: TextView = when (dir) {
+            1 -> {
+                val curStart = pageStarts.getOrNull(curPage) ?: return false
+                val nextStart: Int = if (curPage + 1 < pageStarts.size) pageStarts[curPage + 1]
+                else computePageEnd(curStart).also { e ->
+                    if (e > curStart && pageStarts.size == curPage + 1 && e < ft.length) pageStarts.add(e)
+                }
+                if (nextStart >= ft.length) return false
+                makePageView(nextStart, ft.length)
+            }
+            -1 -> {
+                if (curPage <= 0) return false // 窗口外向前翻禁用拖拽（点左区域仍可翻页）
+                makePageView(pageStarts[curPage - 1], pageStarts[curPage])
+            }
+            else -> return false
+        }
+        adjacentPage = adj
+        adj.translationX = w.toFloat() * dir
+        box.addView(adj, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        return true
+    }
+
+    private fun makePageView(start: Int, endLimit: Int): TextView {
+        val ft = fullText ?: return TextView(this)
+        val end = if (endLimit in (start + 1)..ft.length) endLimit else computePageEnd(start).coerceAtMost(ft.length)
+        return TextView(this).apply {
+            text = ft.subSequence(start, end)
+            setTextColor(BG_TEXT_COLORS[effectiveBgIndex()])
+            textSize = rFontSize
+            setTypeface(TYPEFACES[rTypefaceIdx])
+            setLineSpacing(dp(3).toFloat(), LINE_MULTS[rLineIdx])
+            setPadding(dp(26), dp(34), dp(26), dp(34))
+            includeFontPadding = false
+        }
+    }
+
+    private fun followDrag(dx: Float) {
+        val w = readingRoot.width.toFloat()
+        currentPageView?.translationX = dx
+        adjacentPage?.translationX = w * dragDir + dx
+    }
+
+    private fun endDrag(dx: Float) {
+        val w = readingRoot.width.toFloat()
+        val box = flipBox ?: return
+        val cur = currentPageView
+        val adj = adjacentPage
+        if (commitDrag(dx, w) && cur != null && adj != null) {
+            cur.animate().translationX(-w * dragDir).setDuration(150).withEndAction { box.removeView(cur) }.start()
+            adj.animate().translationX(0f).setDuration(150).withEndAction {
+                currentPageView = adj
+                if (dragDir > 0) curPage += 1 else curPage -= 1
+                if (curPage in pageStarts.indices) lastReadOffset = pageStarts[curPage]
+                adjacentPage = null
+                updateReadingProgress()
+            }.start()
+        } else {
+            cur?.animate()?.translationX(0f)?.setDuration(150)?.start()
+            adj?.animate()?.translationX(w * dragDir)?.setDuration(150)?.withEndAction {
+                box.removeView(adj)
+                adjacentPage = null
+            }?.start()
+        }
+    }
+
+    private fun commitDrag(dx: Float, w: Float): Boolean =
+        kotlin.math.abs(dx) > w * 0.35f
+
+    // ---- 目录（章节识别 + 左滑面板） ----
+
+    private fun toggleToc() {
+        if (tocPanelVisible()) hideToc() else showToc()
+    }
+
+    private fun tocPanelVisible(): Boolean = tocPanel?.visibility == View.VISIBLE
+
+    private fun showToc() {
+        settingsPanel?.visibility = View.GONE
+        val root = readingRoot ?: return
+        val mask = tocMask ?: View(this).apply {
+            setBackgroundColor(0x88000000.toInt())
+            setOnClickListener { hideToc() }
+        }.also { tocMask = it }
+        if (mask.parent == null) {
+            val idx = controlBar?.let { root.indexOfChild(it) } ?: root.childCount
+            root.addView(mask, idx, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        }
+        val panel = tocPanel ?: buildTocPanel().also { tocPanel = it }
+        if (panel.parent == null) {
+            val idx = tocMask?.let { root.indexOfChild(it) }?.plus(1) ?: root.childCount
+            root.addView(panel, idx, FrameLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START))
+        }
+        rebuildTocList()
+        panel.visibility = View.VISIBLE
+        panel.translationX = -dp(300).toFloat()
+        panel.animate().translationX(0f).setDuration(200).start()
+        mask.visibility = View.VISIBLE
+        mask.alpha = 0f
+        mask.animate().alpha(1f).setDuration(200).start()
+    }
+
+    private fun hideToc() {
+        tocPanel?.animate()?.translationX(-dp(300).toFloat())?.setDuration(180)?.withEndAction {
+            tocPanel?.visibility = View.GONE
+        }?.start()
+        tocMask?.animate()?.alpha(0f)?.setDuration(180)?.withEndAction {
+            tocMask?.visibility = View.GONE
+        }?.start()
+    }
+
+    private fun buildTocPanel(): LinearLayout {
+        val night = com.limao.unzip.UiTheme.isNight()
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(if (night) 0xFF1E2126.toInt() else 0xFFFFFFFF.toInt())
+            isClickable = true
+        }
+        panel.addView(TextView(this).apply {
+            text = "目录"; textSize = 17f
+            setTextColor(if (night) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt())
+            setTypeface(null, Typeface.BOLD)
+            setPadding(dp(18), dp(16), dp(18), dp(10))
+        })
+        tocCountLabel = TextView(this).apply {
+            textSize = 12f; setTextColor(0xFF999999.toInt())
+            setPadding(dp(18), 0, dp(18), dp(8))
+        }
+        panel.addView(tocCountLabel)
+        tocList = RecyclerView(this).apply { layoutManager = LinearLayoutManager(this@TextEditorActivity) }
+        panel.addView(tocList, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        return panel
+    }
+
+    private class TocHolder(val view: TextView) : RecyclerView.ViewHolder(view)
+
+    private fun rebuildTocList() {
+        val ft = fullText ?: return
+        val list = tocList ?: return
+        ensureChapters {
+            val cs = chapters ?: return@ensureChapters
+            tocCountLabel?.text = "共 ${cs.size} 章 · ${ft.length} 字"
+            val curOff = currentReadingOffset()
+            var curIdx = 0
+            for (i in cs.indices) if (cs[i].second <= curOff) curIdx = i
+            list.adapter = object : RecyclerView.Adapter<TocHolder>() {
+                override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TocHolder {
+                    val tv = TextView(this@TextEditorActivity).apply {
+                        textSize = 14f
+                        setPadding(dp(18), dp(12), dp(18), dp(12))
+                    }
+                    return TocHolder(tv)
+                }
+
+                override fun getItemCount() = cs.size
+
+                override fun onBindViewHolder(h: TocHolder, pos: Int) {
+                    val (title, off) = cs[pos]
+                    val cur = pos == curIdx
+                    h.view.text = title
+                    h.view.setTextColor(
+                        if (cur) 0xFFFF8A34.toInt()
+                        else if (com.limao.unzip.UiTheme.isNight()) 0xFFDDDDDD.toInt() else 0xFF333333.toInt(),
+                    )
+                    h.view.setTypeface(h.view.typeface, if (cur) Typeface.BOLD else Typeface.NORMAL)
+                    h.view.setOnClickListener {
+                        lastReadOffset = off
+                        hideToc()
+                        if (rPageMode == 1) {
+                            flipBox?.removeAllViews()
+                            jumpToChar(off)
+                        } else {
+                            val maxScroll = maxOf(1, (readingScroll?.getChildAt(0)?.height ?: 1) - (readingScroll?.height ?: 1))
+                            readingScroll?.smoothScrollTo(0, maxScroll * off / ft.length)
+                        }
+                    }
+                }
+            }
+            list.scrollToPosition(curIdx)
+        }
+    }
+
+    private fun ensureChapters(cb: () -> Unit) {
+        if (chapters != null) { cb(); return }
+        val ft = fullText ?: return
+        Thread {
+            chapters = buildChapterList(ft)
+            mainHandler.post { cb() }
+        }.start()
+    }
+
+    /** 章节识别：「第X章/节/卷」等标记行；无标记则按 12000 字符分段 */
+    private fun buildChapterList(ft: String): List<Pair<String, Int>> {
+        val re = Regex("^[\\t 　]*第[0-9〇零一二三四五六七八九十百千万两]+[章节卷回部集篇][^\\n]{0,50}", RegexOption.MULTILINE)
+        val out = ArrayList<Pair<String, Int>>()
+        re.findAll(ft).forEach { m -> out.add(m.value.trim().take(30) to m.range.first) }
+        if (out.size < 3) {
+            out.clear()
+            var off = 0
+            var idx = 1
+            while (off < ft.length) {
+                out.add("第 $idx 节" to off)
+                idx++
+                off += 12000
+            }
+        }
+        return out
+    }
+
+    // ---- 夜间快捷切换 / 进度跳转 ----
+
+    private fun toggleNightBg() {
+        val dark = rBgIndex == 4 || (rBgIndex == FOLLOW_SYSTEM && com.limao.unzip.UiTheme.isNight())
+        rBgIndex = if (dark) 0 else 4
+        onReaderSettingChanged(false)
+    }
+
+    private fun jumpToPercent(value: Int) {
+        val ft = fullText ?: return
+        val target = ((ft.length - 1).coerceAtLeast(0)) * value / 100
+        lastReadOffset = target
+        if (rPageMode == 1) {
+            flipBox?.removeAllViews()
+            jumpToChar(target)
+        } else {
+            val maxScroll = maxOf(1, (readingScroll?.getChildAt(0)?.height ?: 1) - (readingScroll?.height ?: 1))
+            readingScroll?.smoothScrollTo(0, maxScroll * value / 100)
+        }
+        updateReadingProgress()
     }
 
     /** 二分搜索：从 start 起最多能容纳多少字符（StaticLayout 高度 ≤ 页盒） */
@@ -764,6 +1068,7 @@ class TextEditorActivity : AppCompatActivity() {
         }
         val box = flipBox ?: return
         box.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        currentPageView = page
         val out = if (box.childCount > 1) box.getChildAt(0) else null
         val off = box.width.toFloat()
         page.translationX = off * dir
@@ -818,6 +1123,7 @@ class TextEditorActivity : AppCompatActivity() {
             includeFontPadding = false
         }
         box.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        currentPageView = page
         updateReadingProgress()
     }
 
@@ -830,7 +1136,7 @@ class TextEditorActivity : AppCompatActivity() {
                 if (!turnPage(1)) { stopAuto(); refreshQuickBar(); return }
                 mainHandler.postDelayed(this, AUTO_FLIP_S[rAutoIdx] * 1000L)
             } else {
-                readingScroll?.smoothScrollBy(0, AUTO_SCROLL_PX[rAutoIdx] / 6)
+                readingScroll?.scrollBy(0, AUTO_SCROLL_PX[rAutoIdx] / 60)
                 mainHandler.postDelayed(this, 16)
             }
         }
@@ -856,6 +1162,26 @@ class TextEditorActivity : AppCompatActivity() {
     }
 
     // ---- 控制层显隐 / 进度 ----
+
+    /** 点击内容区：面板开→只关面板；自动阅读中→暂停；翻页模式按左/中/右分区；滚动模式呼出控制层 */
+    private fun handleTap(x: Float) {
+        if (settingsPanel?.visibility == View.VISIBLE) {
+            settingsPanel?.visibility = View.GONE
+            return
+        }
+        if (tocPanelVisible()) { hideToc(); return }
+        if (rAutoIdx > 0) { toggleAuto(); return } // 自动阅读中点按 = 暂停
+        val w = readingRoot.width
+        if (rPageMode == 1) {
+            when {
+                x < w / 3f -> turnPage(-1)
+                x > w * 2f / 3f -> turnPage(1)
+                else -> toggleControls()
+            }
+        } else {
+            toggleControls()
+        }
+    }
 
     private fun toggleControls() {
         controlsVisible = !controlsVisible
@@ -891,46 +1217,52 @@ class TextEditorActivity : AppCompatActivity() {
 
     // ---- 设置面板 ----
 
-    private fun buildSettingsPanel(): LinearLayout {
-        val panel = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xF2151517.toInt())
-            setPadding(dp(18), dp(14), dp(18), dp(18))
-            // 面板自身消费点击（空隙区域不穿透到内容层）
-            isClickable = true
-        }
-        val chipRefreshers = ArrayList<() -> Unit>()
+    private fun buildSettingsPanel(): ScrollView {
+        // 外层 ScrollView：选项较多，小屏可滚动查看全部
+        val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false }
+        val panel = LinearLayout(this)
+        panel.orientation = LinearLayout.VERTICAL
+        panel.setBackgroundColor(0xF2151517.toInt())
+        panel.setPadding(dp(18), dp(14), dp(18), dp(18))
+        panel.isClickable = true // 空隙区域不穿透到内容层
+        chipRefreshers.clear()
 
-        fun label(labelStr: String) = TextView(this).apply {
-            text = labelStr; textSize = 12f; setTextColor(0xFF999999.toInt())
-            setPadding(0, dp(10), 0, dp(4))
+        val label: (String) -> TextView = { s ->
+            TextView(this).apply {
+                text = s; textSize = 12f; setTextColor(0xFF999999.toInt())
+                setPadding(0, dp(10), 0, dp(4))
+            }
         }
 
-        /** 芯片组：点击就地刷新选中态（不重建面板，零延迟） */
-        fun chipRow(options: List<String>, current: () -> Int, onPick: (Int) -> Unit): LinearLayout {
-            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        // 芯片行：宽度必须 MATCH_PARENT——wrap 宽度父容器里 weight 芯片会塌成 0 宽
+        fun chipRow(options: List<String>, currentIdx: () -> Int, onPick: (Int) -> Unit): LinearLayout {
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
             val chips = ArrayList<TextView>()
             fun refresh() {
-                chips.forEachIndexed { i, c ->
-                    val sel = i == current()
-                    c.setTextColor(if (sel) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
-                    c.setBackgroundResource(if (sel) R.drawable.chip_selected else R.drawable.chip_normal)
+                for (i in chips.indices) {
+                    val sel = i == currentIdx()
+                    chips[i].setTextColor(if (sel) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
+                    chips[i].setBackgroundResource(if (sel) R.drawable.chip_selected else R.drawable.chip_normal)
                 }
             }
-            options.forEachIndexed { i, opt ->
-                chips.add(TextView(this).apply {
-                    text = opt; textSize = 13f
-                    setPadding(dp(14), dp(6), dp(14), dp(6))
-                    setBackgroundResource(if (i == current()) R.drawable.chip_selected else R.drawable.chip_normal)
-                    setTextColor(if (i == current()) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
-                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
-                    gravity = Gravity.CENTER
-                    setOnClickListener {
-                        onPick(i)
-                        refresh()
-                        chipRefreshers.forEach { it() } // 联动刷新（如跟随/固定背景互斥）
-                    }
-                })
+            for (i in options.indices) {
+                val c = TextView(this)
+                c.text = options[i]
+                c.textSize = 13f
+                c.setPadding(dp(14), dp(6), dp(14), dp(6))
+                c.gravity = Gravity.CENTER
+                c.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
+                c.setOnClickListener {
+                    onPick(i)
+                    refresh()
+                    for (r in chipRefreshers) r()
+                }
+                chips.add(c)
+                row.addView(c)
             }
             refresh()
             chipRefreshers.add { refresh() }
@@ -938,53 +1270,75 @@ class TextEditorActivity : AppCompatActivity() {
         }
 
         panel.addView(label("亮度（护眼遮罩）"))
-        val bright = SeekBar(this).apply {
-            max = 100
-            progress = ((rBrightness - 0.15f) / 0.85f * 100).toInt()
-            setPadding(0, dp(6), 0, dp(6))
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar?, value: Int, fromUser: Boolean) {
-                    rBrightness = 0.15f + value / 100f * 0.85f
-                    this@TextEditorActivity.overlay?.setAlpha((1f - rBrightness) * 0.72f)
-                }
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
-                override fun onStopTrackingTouch(sb: SeekBar?) { saveReaderPrefs() }
-            })
-        }
+        val bright = SeekBar(this)
+        bright.max = 100
+        bright.progress = ((rBrightness - 0.15f) / 0.85f * 100).toInt()
+        bright.setPadding(0, dp(6), 0, dp(6))
+        bright.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, value: Int, fromUser: Boolean) {
+                rBrightness = 0.15f + value / 100f * 0.85f
+                this@TextEditorActivity.overlay?.setAlpha((1f - rBrightness) * 0.72f)
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) { saveReaderPrefs() }
+        })
         panel.addView(bright)
 
         panel.addView(label("字体"))
-        panel.addView(chipRow(TF_NAMES.toList(), { rTypefaceIdx }) { rTypefaceIdx = it; onReaderSettingChanged(needsRelayout = true) })
+        panel.addView(chipRow(TF_NAMES.toList(), { rTypefaceIdx }) {
+            rTypefaceIdx = it; onReaderSettingChanged(true)
+        })
 
         panel.addView(label("字号"))
-        val fontRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
-        val fontSizeLabel = TextView(this).apply {
-            text = "${rFontSize.toInt()}"; textSize = 15f; setTextColor(0xFF64B5FF.toInt()); gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        val fontRow = LinearLayout(this)
+        fontRow.orientation = LinearLayout.HORIZONTAL
+        fontRow.gravity = Gravity.CENTER
+        fontRow.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        val fontMinus = TextView(this)
+        fontMinus.text = "A−"; fontMinus.textSize = 16f; fontMinus.setTextColor(0xFFDDDDDD.toInt())
+        fontMinus.gravity = Gravity.CENTER
+        fontMinus.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        fontMinus.setPadding(0, dp(6), 0, dp(6))
+        fontMinus.setOnClickListener {
+            rFontSize = (rFontSize - 2f).coerceAtLeast(12f)
+            fontSizeLabel?.text = "${rFontSize.toInt()}"
+            onReaderSettingChanged(true)
         }
-        fontRow.addView(TextView(this).apply {
-            text = "A−"; textSize = 16f; setTextColor(0xFFDDDDDD.toInt()); gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            setPadding(0, dp(6), 0, dp(6))
-            setOnClickListener { rFontSize = (rFontSize - 2f).coerceAtLeast(12f); fontSizeLabel.text = "${rFontSize.toInt()}"; onReaderSettingChanged(true) }
-        })
+        fontRow.addView(fontMinus)
+        fontSizeLabel = TextView(this)
+        fontSizeLabel!!.text = "${rFontSize.toInt()}"; fontSizeLabel!!.textSize = 15f
+        fontSizeLabel!!.setTextColor(0xFF64B5FF.toInt()); fontSizeLabel!!.gravity = Gravity.CENTER
+        fontSizeLabel!!.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         fontRow.addView(fontSizeLabel)
-        fontRow.addView(TextView(this).apply {
-            text = "A＋"; textSize = 20f; setTextColor(0xFFDDDDDD.toInt()); gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            setPadding(0, dp(6), 0, dp(6))
-            setOnClickListener { rFontSize = (rFontSize + 2f).coerceAtMost(50f); fontSizeLabel.text = "${rFontSize.toInt()}"; onReaderSettingChanged(true) }
-        })
+        val fontPlus = TextView(this)
+        fontPlus.text = "A＋"; fontPlus.textSize = 20f; fontPlus.setTextColor(0xFFDDDDDD.toInt())
+        fontPlus.gravity = Gravity.CENTER
+        fontPlus.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        fontPlus.setPadding(0, dp(6), 0, dp(6))
+        fontPlus.setOnClickListener {
+            rFontSize = (rFontSize + 2f).coerceAtMost(50f)
+            fontSizeLabel?.text = "${rFontSize.toInt()}"
+            onReaderSettingChanged(true)
+        }
+        fontRow.addView(fontPlus)
         panel.addView(fontRow)
 
         panel.addView(label("行距"))
-        panel.addView(chipRow(LINE_NAMES.toList(), { rLineIdx }) { rLineIdx = it; onReaderSettingChanged(true) })
+        panel.addView(chipRow(LINE_NAMES.toList(), { rLineIdx }) {
+            rLineIdx = it; onReaderSettingChanged(true)
+        })
 
         panel.addView(label("背景（跟随 = 随系统日夜自动切换）"))
-        val bgRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val bgRow = LinearLayout(this)
+        bgRow.orientation = LinearLayout.HORIZONTAL
+        bgRow.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
         val bgChips = ArrayList<Pair<TextView, Int>>() // chip + 对应 rBgIndex
         fun refreshBg() {
-            bgChips.forEach { (c, idx) ->
+            for ((c, idx) in bgChips) {
                 val sel = idx == rBgIndex
                 if (idx == FOLLOW_SYSTEM) {
                     c.setTextColor(if (sel) 0xFF0D2B52.toInt() else 0xFF1D1B20.toInt())
@@ -995,17 +1349,16 @@ class TextEditorActivity : AppCompatActivity() {
                 }
             }
         }
-        fun bgChip(label: String, idx: Int) {
-            val c = TextView(this).apply {
-                text = label; textSize = 13f
-                setPadding(dp(14), dp(8), dp(14), dp(8))
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
-                gravity = Gravity.CENTER
-                setOnClickListener {
-                    rBgIndex = idx
-                    onReaderSettingChanged(false) // 颜色不影响排版，即时生效
-                    refreshBg()
-                }
+        fun bgChip(labelStr: String, idx: Int) {
+            val c = TextView(this)
+            c.text = labelStr; c.textSize = 13f
+            c.setPadding(dp(14), dp(8), dp(14), dp(8))
+            c.gravity = Gravity.CENTER
+            c.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
+            c.setOnClickListener {
+                rBgIndex = idx
+                onReaderSettingChanged(false) // 颜色不影响排版，即时生效
+                refreshBg()
             }
             bgChips.add(c to idx)
             bgRow.addView(c)
@@ -1017,32 +1370,38 @@ class TextEditorActivity : AppCompatActivity() {
         panel.addView(bgRow)
 
         panel.addView(label("翻页方式"))
-        val pmRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        val pmRow = LinearLayout(this)
+        pmRow.orientation = LinearLayout.HORIZONTAL
+        pmRow.gravity = Gravity.CENTER
+        pmRow.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
         val pmChips = ArrayList<TextView>()
         fun refreshPm() {
-            pmChips.forEachIndexed { i, c ->
-                c.setTextColor(if (i == rPageMode) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
+            for (i in pmChips.indices) {
+                pmChips[i].setTextColor(if (i == rPageMode) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
             }
         }
         listOf("上下滚动", "左右翻页").forEachIndexed { i, name ->
-            pmChips.add(TextView(this).apply {
-                text = name; textSize = 13f
-                setPadding(dp(14), dp(8), dp(14), dp(8))
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
-                gravity = Gravity.CENTER
-                setOnClickListener {
-                    lastReadOffset = currentReadingOffset()
-                    rPageMode = i
-                    saveReaderPrefs()
-                    refreshPm()
-                    readingScroll?.visibility = if (i == 0) View.VISIBLE else View.GONE
-                    flipBox?.visibility = if (i == 1) View.VISIBLE else View.GONE
-                    if (i == 1) setupFlipReader() else setupScrollReader()
-                    updateReadingProgress()
-                }
-            })
-            refreshPm()
+            val c = TextView(this)
+            c.text = name; c.textSize = 13f
+            c.setPadding(dp(14), dp(8), dp(14), dp(8))
+            c.gravity = Gravity.CENTER
+            c.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) }
+            c.setOnClickListener {
+                lastReadOffset = currentReadingOffset()
+                rPageMode = i
+                saveReaderPrefs()
+                refreshPm()
+                readingScroll?.visibility = if (i == 0) View.VISIBLE else View.GONE
+                flipBox?.visibility = if (i == 1) View.VISIBLE else View.GONE
+                if (i == 1) setupFlipReader() else setupScrollReader()
+                updateReadingProgress()
+            }
+            pmChips.add(c)
+            pmRow.addView(c)
         }
+        refreshPm()
         panel.addView(pmRow)
 
         panel.addView(label("自动阅读（翻页：慢20s/中10s/快5s · 滚动：匀速）"))
@@ -1055,38 +1414,25 @@ class TextEditorActivity : AppCompatActivity() {
         })
 
         panel.addView(label("进度跳转（拖动选择，松手跳转）"))
-        val jump = SeekBar(this).apply { max = 100; progress = 0 }
+        val jump = SeekBar(this)
+        jump.max = 100
         jump.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, value: Int, fromUser: Boolean) {
-                if (!fromUser) return
-                // 拖动中只更新提示文本（实时跳页在大文档上开销大）
-                readingProgress?.text = "跳转到 $value%"
+                if (fromUser) readingProgress?.text = "跳转到 $value%"
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {
-                val value = sb?.progress ?: return
-                val ft = fullText ?: return
-                val target = ((ft.length - 1).coerceAtLeast(0)) * value / 100
-                lastReadOffset = target
-                if (rPageMode == 1) {
-                    flipBox?.removeAllViews()
-                    jumpToChar(target)
-                } else {
-                    val maxScroll = maxOf(1, (readingScroll?.getChildAt(0)?.height ?: 1) - (readingScroll?.height ?: 1))
-                    readingScroll?.smoothScrollTo(0, maxScroll * value / 100)
-                }
-                updateReadingProgress()
-            }
+            override fun onStopTrackingTouch(sb: SeekBar?) { jumpToPercent(sb?.progress ?: 0) }
         })
         panel.addView(jump)
-        readingProgress = TextView(this).apply {
-            textSize = 12f; setTextColor(0xFF999999.toInt()); gravity = Gravity.CENTER
-            setPadding(0, dp(8), 0, 0)
-        }
+        readingProgress = TextView(this)
+        readingProgress!!.textSize = 12f
+        readingProgress!!.setTextColor(0xFF999999.toInt())
+        readingProgress!!.gravity = Gravity.CENTER
+        readingProgress!!.setPadding(0, dp(8), 0, 0)
         panel.addView(readingProgress)
-        return panel
+        scroll.addView(panel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        return scroll
     }
-
     private fun currentReadingOffset(): Int {
         return if (rPageMode == 1) {
             if (curPage < pageStarts.size) pageStarts[curPage] else lastReadOffset
@@ -1114,9 +1460,18 @@ class TextEditorActivity : AppCompatActivity() {
         overlay = null
         topBar = null
         quickBar = null
+        controlBar = null
+        jumpSeek = null
         settingsPanel = null
         readingProgress = null
         topProgress = null
+        tocMask = null
+        tocPanel = null
+        tocList = null
+        tocCountLabel = null
+        currentPageView = null
+        adjacentPage = null
+        dragActive = false
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
