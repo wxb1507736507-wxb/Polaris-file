@@ -155,15 +155,38 @@ class TextEditorActivity : AppCompatActivity() {
     }
 
     private val prefs by lazy { getSharedPreferences(PREFS, MODE_PRIVATE) }
+
+    /** 以当前 Activity 的实时配置判断日夜（appCtx 缓存配置在系统切换日夜后不更新） */
+    private fun nightNow(): Boolean = try {
+        // AppCompat/Application 会缓存 uiMode 配置；读系统级设置才准确
+        when (android.provider.Settings.Secure.getInt(
+            contentResolver, "ui_night_mode", -1)) {
+            2 -> true
+            1 -> false
+            else -> (resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+        }
+    } catch (t: Throwable) {
+        (resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
+
+    // 阅读器界面配色：跟随系统日夜（设置面板/控制栏/顶栏/目录一致）
+    private val chromeBg get() = if (nightNow()) 0xF2151517.toInt() else 0xFFFFFFFF.toInt()
+    private val chromeFg get() = if (nightNow()) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt()
+    private val chromeFgSub get() = if (nightNow()) 0xFF999999.toInt() else 0xFF888888.toInt()
+    private val chipFg get() = if (nightNow()) 0xFFDDDDDD.toInt() else 0xFF1D1B20.toInt()
     private fun saveReaderPrefs() {
         prefs.edit()
             .putFloat("rf", rFontSize)
-            .putInt("bg", rBgIndex)
+            .putInt("bg_follow", rBgIndex)
             .putInt("ln", rLineIdx)
             .putInt("tf", rTypefaceIdx)
             .putInt("pm", rPageMode)
             .putInt("au", rAutoIdx)
-            .putFloat("br", rBrightness)
+            .putFloat("br2", rBrightness)
             .apply()
     }
 
@@ -171,16 +194,16 @@ class TextEditorActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         // 读取持久化的阅读器设置（翻页模式/字号/背景/亮度等）
         rFontSize = prefs.getFloat("rf", 20f)
-        rBgIndex = prefs.getInt("bg", FOLLOW_SYSTEM)
+        rBgIndex = prefs.getInt("bg_follow", FOLLOW_SYSTEM) // v0.9.39 迁移：旧"bg"键废弃（清除历史测试残留的黑底选择）
         rLineIdx = prefs.getInt("ln", 1)
         rTypefaceIdx = prefs.getInt("tf", 0)
         rPageMode = prefs.getInt("pm", 0)
         rAutoIdx = prefs.getInt("au", 0)
-        rBrightness = prefs.getFloat("br", 1.0f)
+        rBrightness = prefs.getFloat("br2", 1.0f) // v0.9.39 迁移：亮度遮罩测试残留重置
         readingInitDone = true
         val path = intent.getStringExtra(EXTRA_PATH) ?: run { finish(); return }
         file = File(path)
-        val night = com.limao.unzip.UiTheme.isNight()
+        val night = nightNow()
         val bgEditor = if (night) 0xFF1E1E1E.toInt() else 0xFFFFFFFF.toInt()
         val bgBar = if (night) 0xFF2B2B2B.toInt() else 0xFFF5F6F8.toInt()
         val fgPrimary = if (night) 0xFFEEEEEE.toInt() else 0xFF1D1B20.toInt()
@@ -456,28 +479,28 @@ class TextEditorActivity : AppCompatActivity() {
 
         // 顶栏
         topBar = LinearLayout(this).apply {
-            setBackgroundColor(0x66000000)
+            setBackgroundColor(if (nightNow()) 0x66000000 else 0xFFFFFFFF.toInt())
             setPadding(dp(8), dp(6), dp(8), dp(6))
             gravity = Gravity.CENTER_VERTICAL
         }
         topBar!!.addView(TextView(this).apply {
-            text = "‹"; textSize = 24f; setTextColor(0xFFFFFFFF.toInt()); setPadding(dp(8), 0, dp(14), 0)
+            text = "‹"; textSize = 24f; setTextColor(chromeFg); setPadding(dp(8), 0, dp(14), 0)
             setOnClickListener { exitReadingMode() }
         })
         topBar!!.addView(TextView(this).apply {
-            text = file.name; textSize = 14f; setTextColor(0xFFFFFFFF.toInt()); maxLines = 1
+            text = file.name; textSize = 14f; setTextColor(chromeFg); maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
         topProgress = TextView(this).apply {
-            textSize = 12f; setTextColor(0xEEFFFFFF.toInt()); setPadding(dp(8), 0, dp(4), 0)
+            textSize = 12f; setTextColor(chromeFgSub); setPadding(dp(8), 0, dp(4), 0)
         }
         topBar!!.addView(topProgress)
 
         // 控制栏（番茄式两行）：进度行 + 功能行
         controlBar = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xF2151517.toInt())
+            setBackgroundColor(chromeBg)
             setPadding(dp(12), dp(4), dp(12), dp(8))
             isClickable = true
         }
@@ -487,7 +510,7 @@ class TextEditorActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
         }
         progressRow.addView(TextView(this).apply {
-            text = "上一页"; textSize = 13f; setTextColor(0xFFFFFFFF.toInt())
+            text = "上一页"; textSize = 13f; setTextColor(chromeFg)
             setPadding(dp(6), dp(8), dp(6), dp(8))
             setOnClickListener { turnPage(-1) }
         })
@@ -504,7 +527,7 @@ class TextEditorActivity : AppCompatActivity() {
         }
         progressRow.addView(jumpSeek)
         progressRow.addView(TextView(this).apply {
-            text = "下一页"; textSize = 13f; setTextColor(0xFFFFFFFF.toInt())
+            text = "下一页"; textSize = 13f; setTextColor(chromeFg)
             setPadding(dp(6), dp(8), dp(6), dp(8))
             setOnClickListener { turnPage(1) }
         })
@@ -512,7 +535,7 @@ class TextEditorActivity : AppCompatActivity() {
         // 行2：目录 | 自动 | 夜间 | 设置 | 编辑
         val iconRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         fun icon(label: String, onClick: () -> Unit) = TextView(this).apply {
-            text = label; textSize = 13f; setTextColor(0xFFFFFFFF.toInt()); gravity = Gravity.CENTER
+            text = label; textSize = 13f; setTextColor(chromeFg); gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             setPadding(0, dp(8), 0, dp(8))
             setOnClickListener { onClick() }
@@ -588,7 +611,9 @@ class TextEditorActivity : AppCompatActivity() {
 
     private fun applyReaderTheme() {
         // rBgIndex == FOLLOW_SYSTEM(-1)：底色跟随系统日夜模式
-        val effectiveBg = if (rBgIndex == FOLLOW_SYSTEM) (if (com.limao.unzip.UiTheme.isNight()) 4 else 0) else rBgIndex
+        // 「跟随」= 随【系统】日夜模式（不走应用内强制主题）：直接读系统 UI 模式
+        val effectiveBg = if (rBgIndex == FOLLOW_SYSTEM) (if (systemNightMode()) 4 else 0) else rBgIndex
+        android.util.Log.d("ReaderTheme", "applyReaderTheme rBgIndex=$rBgIndex sysNight=${systemNightMode()} effBg=$effectiveBg")
         val bg = BG_COLORS[effectiveBg]
         val fg = BG_TEXT_COLORS[effectiveBg]
         readingRoot.setBackgroundColor(bg)
@@ -603,7 +628,7 @@ class TextEditorActivity : AppCompatActivity() {
         readerPaint.typeface = TYPEFACES[rTypefaceIdx]
         flipBox?.setBackgroundColor(bg)
         overlay?.setAlpha((1f - rBrightness) * 0.72f)
-        topProgress?.setTextColor(0xEEFFFFFF.toInt())
+        topProgress?.setTextColor(chromeFgSub)
     }
 
     // ---- 滚动模式 ----
@@ -703,7 +728,12 @@ class TextEditorActivity : AppCompatActivity() {
     }
 
     private fun effectiveBgIndex(): Int =
-        if (rBgIndex == FOLLOW_SYSTEM) (if (com.limao.unzip.UiTheme.isNight()) 4 else 0) else rBgIndex
+        if (rBgIndex == FOLLOW_SYSTEM) (if (nightNow()) 4 else 0) else rBgIndex
+
+    /** 系统（而非应用内强制主题）的日夜状态：阅读器「跟随」底色的依据 */
+    private fun systemNightMode(): Boolean =
+        (android.content.res.Resources.getSystem().configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
 
     /** 渲染指定起点的一页（页尾现算一次并缓存为下一页起点） */
     private fun renderFlipPage(start: Int) {
@@ -855,7 +885,7 @@ class TextEditorActivity : AppCompatActivity() {
     }
 
     private fun buildTocPanel(): LinearLayout {
-        val night = com.limao.unzip.UiTheme.isNight()
+        val night = nightNow()
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(if (night) 0xFF1E2126.toInt() else 0xFFFFFFFF.toInt())
@@ -905,7 +935,7 @@ class TextEditorActivity : AppCompatActivity() {
                     h.view.text = title
                     h.view.setTextColor(
                         if (cur) 0xFFFF8A34.toInt()
-                        else if (com.limao.unzip.UiTheme.isNight()) 0xFFDDDDDD.toInt() else 0xFF333333.toInt(),
+                        else if (nightNow()) 0xFFDDDDDD.toInt() else 0xFF333333.toInt(),
                     )
                     h.view.setTypeface(h.view.typeface, if (cur) Typeface.BOLD else Typeface.NORMAL)
                     h.view.setOnClickListener {
@@ -955,7 +985,7 @@ class TextEditorActivity : AppCompatActivity() {
     // ---- 夜间快捷切换 / 进度跳转 ----
 
     private fun toggleNightBg() {
-        val dark = rBgIndex == 4 || (rBgIndex == FOLLOW_SYSTEM && com.limao.unzip.UiTheme.isNight())
+        val dark = rBgIndex == 4 || (rBgIndex == FOLLOW_SYSTEM && systemNightMode())
         rBgIndex = if (dark) 0 else 4
         onReaderSettingChanged(false)
     }
@@ -1059,7 +1089,7 @@ class TextEditorActivity : AppCompatActivity() {
         val seq = ft.subSequence(start, end)
         val page = TextView(this).apply {
             text = seq
-            setTextColor(BG_TEXT_COLORS[rBgIndex])
+            setTextColor(BG_TEXT_COLORS[effectiveBgIndex()])
             textSize = rFontSize
             setTypeface(TYPEFACES[rTypefaceIdx])
             setLineSpacing(dp(3).toFloat(), LINE_MULTS[rLineIdx])
@@ -1115,7 +1145,7 @@ class TextEditorActivity : AppCompatActivity() {
         box.removeAllViews()
         val page = TextView(this).apply {
             text = ft.subSequence(start, end)
-            setTextColor(BG_TEXT_COLORS[rBgIndex])
+            setTextColor(BG_TEXT_COLORS[effectiveBgIndex()])
             textSize = rFontSize
             setTypeface(TYPEFACES[rTypefaceIdx])
             setLineSpacing(dp(3).toFloat(), LINE_MULTS[rLineIdx])
@@ -1222,14 +1252,14 @@ class TextEditorActivity : AppCompatActivity() {
         val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = false }
         val panel = LinearLayout(this)
         panel.orientation = LinearLayout.VERTICAL
-        panel.setBackgroundColor(0xF2151517.toInt())
+        panel.setBackgroundColor(chromeBg)
         panel.setPadding(dp(18), dp(14), dp(18), dp(18))
         panel.isClickable = true // 空隙区域不穿透到内容层
         chipRefreshers.clear()
 
         val label: (String) -> TextView = { s ->
             TextView(this).apply {
-                text = s; textSize = 12f; setTextColor(0xFF999999.toInt())
+                text = s; textSize = 12f; setTextColor(chromeFgSub)
                 setPadding(0, dp(10), 0, dp(4))
             }
         }
@@ -1245,7 +1275,7 @@ class TextEditorActivity : AppCompatActivity() {
             fun refresh() {
                 for (i in chips.indices) {
                     val sel = i == currentIdx()
-                    chips[i].setTextColor(if (sel) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
+                    chips[i].setTextColor(if (sel) 0xFF64B5FF.toInt() else chipFg)
                     chips[i].setBackgroundResource(if (sel) R.drawable.chip_selected else R.drawable.chip_normal)
                 }
             }
@@ -1341,10 +1371,10 @@ class TextEditorActivity : AppCompatActivity() {
             for ((c, idx) in bgChips) {
                 val sel = idx == rBgIndex
                 if (idx == FOLLOW_SYSTEM) {
-                    c.setTextColor(if (sel) 0xFF0D2B52.toInt() else 0xFF1D1B20.toInt())
+                    c.setTextColor(if (sel) 0xFF0D2B52.toInt() else chipFg)
                     c.setBackgroundColor(if (sel) 0xFF64B5FF.toInt() else 0xFF888888.toInt())
                 } else {
-                    c.setTextColor(if (sel) 0xFF64B5FF.toInt() else 0xFF1D1B20.toInt())
+                    c.setTextColor(if (sel) 0xFF64B5FF.toInt() else BG_TEXT_COLORS[idx])
                     c.setBackgroundColor(BG_COLORS[idx])
                 }
             }
@@ -1379,7 +1409,7 @@ class TextEditorActivity : AppCompatActivity() {
         val pmChips = ArrayList<TextView>()
         fun refreshPm() {
             for (i in pmChips.indices) {
-                pmChips[i].setTextColor(if (i == rPageMode) 0xFF64B5FF.toInt() else 0xFFDDDDDD.toInt())
+                pmChips[i].setTextColor(if (i == rPageMode) 0xFF64B5FF.toInt() else chipFg)
             }
         }
         listOf("上下滚动", "左右翻页").forEachIndexed { i, name ->
