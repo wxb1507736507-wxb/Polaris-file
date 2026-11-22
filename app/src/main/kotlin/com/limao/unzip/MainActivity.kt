@@ -444,6 +444,7 @@ class MainActivity : AppCompatActivity() {
                         ),
                     )
                     .build()
+                ObjectGraph.resetJobState() // 清掉上一次的进度/终态（须在入队前）
                 androidx.work.WorkManager.getInstance(this).enqueue(request)
                 toast(getString(R.string.toast_compressing, out.name))
             }

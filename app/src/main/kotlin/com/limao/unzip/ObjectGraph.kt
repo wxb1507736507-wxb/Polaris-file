@@ -21,6 +21,16 @@ object ObjectGraph {
     val activeProgress = MutableStateFlow<ProgressSnapshot?>(null)
     val activeResult = MutableStateFlow<ExtractResult?>(null)
 
+    /** 开始新任务前清空上一次的进度/终态并取消所有未完成任务。
+     *  - StateFlow 会向新订阅者重放旧值，不清空会让新进度页先错显上一次的"完成"
+     *  - WorkManager 会把被杀任务持久化重跑：不取消的话旧任务完成结果会串到新任务页 */
+    fun resetJobState() {
+        runCatching { androidx.work.WorkManager.getInstance(appContext).cancelAllWork() }
+        activeJobId.value = null
+        activeProgress.value = null
+        activeResult.value = null
+    }
+
     /** 最近一次用户动作的提示（文件页跳转反馈）。 */
     @Volatile var lastAction: String? = null
 

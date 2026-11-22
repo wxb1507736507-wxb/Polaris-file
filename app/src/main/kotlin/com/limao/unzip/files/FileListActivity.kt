@@ -159,6 +159,7 @@ class FileListActivity : AppCompatActivity() {
             listOf(getString(R.string.compress_zip) to CreateFormat.ZIP, getString(R.string.compress_7z) to CreateFormat.SEVEN_Z, getString(R.string.compress_tgz) to CreateFormat.TAR_GZ).forEach { (label, fmt) ->
                 compressRow!!.addView(android.widget.Button(this).apply {
                     text = label; textSize = 12f; maxLines = 1
+                    com.limao.unzip.UiTheme.applyTonalButton(this)
                     setOnClickListener { startCompress(File(browserPath!!), fmt) }
                 }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { rightMargin = dp(4) })
             }
@@ -202,6 +203,7 @@ class FileListActivity : AppCompatActivity() {
             parent.addView(android.widget.Button(this).apply {
                 text = label; textSize = 12f; maxLines = 1
                 isEnabled = true
+                com.limao.unzip.UiTheme.applyTonalButton(this, outlined = label == getString(R.string.sel_exit))
                 setOnClickListener { if (enabled()) action() }
             }, LinearLayout.LayoutParams(0, dp(42), 1f).apply { rightMargin = dp(3) })
         }
@@ -784,6 +786,7 @@ class FileListActivity : AppCompatActivity() {
 
     private fun startExtract(src: File, dst: File, password: String? = null) {
         // 点击即入队+打开进度弹层，零预检零卡顿；加密在 Worker 内检测，失败后经 NEED_PASSWORD 重试
+        ObjectGraph.resetJobState() // 清掉上一次的进度/终态，避免新进度页错显旧"完成"
         val request = OneTimeWorkRequestBuilder<ExtractionWorker>()
             .setInputData(
                 workDataOf(
@@ -807,6 +810,7 @@ class FileListActivity : AppCompatActivity() {
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
             "${dir.name}.${format.extension}",
         )
+        ObjectGraph.resetJobState() // 清掉上一次的进度/终态
         val request = OneTimeWorkRequestBuilder<CompressWorker>()
             .setInputData(
                 workDataOf(

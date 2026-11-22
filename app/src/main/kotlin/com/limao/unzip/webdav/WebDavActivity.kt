@@ -90,6 +90,7 @@ class WebDavActivity : AppCompatActivity() {
         uploadBtn = Button(this).apply {
             text = getString(R.string.webdav_upload_btn)
             textSize = 13f
+            com.limao.unzip.UiTheme.applyTonalButton(this)
             visibility = View.GONE
             setOnClickListener { showUploadDialog() }
         }
@@ -135,7 +136,14 @@ class WebDavActivity : AppCompatActivity() {
         }
         Thread {
             latch.await()
-            val hit = first.get() ?: return@Thread
+            val hit = first.get() ?: run {
+                // 全部候选无响应：明确提示去配置，而不是永远停在"正在读取…"
+                runOnUiThread {
+                    statusView.visibility = View.VISIBLE
+                    statusView.text = getString(R.string.webdav_none_found)
+                }
+                return@Thread
+            }
             val code = hit.substringBefore("|").toInt()
             val url = hit.substringAfter("|")
             runOnUiThread {

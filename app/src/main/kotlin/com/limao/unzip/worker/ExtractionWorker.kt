@@ -83,7 +83,7 @@ class ExtractionWorker(
             try {
                 val result = job.await()
                 notifier.cancel()
-                ObjectGraph.activeResult.value = result
+                if (!isStopped) ObjectGraph.activeResult.value = result // 已取消的旧任务不污染通道
                 return finishWith(result, journalFile)
             } catch (ce: CancellationException) {
                 // WorkManager 取消：置位引擎中止标志，等待协作式收尾（Aborted 结果丢弃，journal 保留）
@@ -168,7 +168,7 @@ class ExtractionWorker(
             try {
                 val result = job.await()
                 notifier.cancel()
-                ObjectGraph.activeResult.value = result
+                if (!isStopped) ObjectGraph.activeResult.value = result // 已取消的旧任务不污染通道
                 // 记录解压历史：压缩包列表据此显示"已解压"并可直达目录
                 if (result is ExtractResult.Completed && result.entriesDone > 0) {
                     runCatching { com.limao.unzip.files.ExtractHistory.record(applicationContext, srcPath, dstPath) }

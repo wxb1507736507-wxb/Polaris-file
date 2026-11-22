@@ -10,6 +10,7 @@ import android.text.format.DateFormat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.limao.unzip.ObjectGraph
 import com.limao.unzip.R
 import com.limao.unzip.files.ProgressActivity
 import com.limao.unzip.files.office.OfficeViewerActivity
@@ -138,6 +139,8 @@ object FileOpener {
     }
 
     fun startExtract(activity: Activity, src: File, dst: File, password: String? = null) {
+        // 新任务开始前清空上一次的进度/终态（StateFlow 重放旧值会让新进度页错显"完成"）
+        ObjectGraph.resetJobState()
         val request = OneTimeWorkRequestBuilder<ExtractionWorker>()
             .setInputData(
                 workDataOf(

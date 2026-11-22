@@ -36,6 +36,7 @@
     <string name="webdav_downloading">Downloading</string>
     <string name="webdav_bridge_found">Bridge found, connected automatically: %1$s</string>
     <string name="webdav_bridge_needauth">Bridge found (finish one-time account authorization in it), address filled: %1$s</string>
+    <string name="webdav_none_found">No local WebDAV service found. Configure the server via the gear icon</string>
     <string name="webdav_download_done">Downloaded: </string>
     <string name="webdav_enter_path">Path to browse (empty = root)</string>
     <string name="recent_archives">Recent archives</string>

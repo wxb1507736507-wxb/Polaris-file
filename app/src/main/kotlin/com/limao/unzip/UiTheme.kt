@@ -97,4 +97,35 @@ object UiTheme {
 
     /** 选中底色（浅蓝 / 深蓝） */
     fun chipBg() = if (isNight()) 0xFF17324A.toInt() else 0xFFE3F0FC.toInt()
+
+    /** M3 primaryContainer 底色（色调按钮用） */
+    private fun tonalBg() = if (isNight()) 0xFF1D3244.toInt() else 0xFFDDEBF7.toInt()
+
+    /** M3 onPrimaryContainer 文字色 */
+    private fun onTonal() = if (isNight()) 0xFFCFE6F7.toInt() else 0xFF0A3350.toInt()
+
+    /** M3E 色调按钮：圆角 22dp、primaryContainer 底色、无边大写；
+     *  outlined=true 为描边样式（用于"退出"等次要动作）。 */
+    fun applyTonalButton(btn: android.widget.Button, outlined: Boolean = false) {
+        val r = 22f * btn.resources.displayMetrics.density
+        val bg = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = r
+            if (outlined) {
+                setColor(android.graphics.Color.TRANSPARENT)
+                setStroke(
+                    (1.5f * btn.resources.displayMetrics.density).toInt(),
+                    accent(),
+                )
+            } else {
+                setColor(tonalBg())
+            }
+        }
+        btn.background = bg
+        btn.setTextColor(if (outlined) accent() else onTonal())
+        btn.isAllCaps = false
+        btn.stateListAnimator = null
+        // 禁用态：整钮降透明（M3 语义的简化实现）
+        btn.alpha = if (btn.isEnabled) 1f else 0.45f
+    }
 }
