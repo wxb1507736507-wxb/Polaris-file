@@ -64,13 +64,31 @@ object GifEncoder {
     }
 
     /** 阶段二：写出 GIF 文件（单帧静态或逐帧动画）。 */
-    fun write(out: File, width: Int, height: Int, palette: IntArray, loopForever: Boolean, frames: Sequence<Frame>, dither: Boolean = false) {
+    fun write(
+        out: File,
+        width: Int,
+        height: Int,
+        palette: IntArray,
+        loopForever: Boolean,
+        frames: Sequence<Frame>,
+        dither: Boolean = false,
+        perFramePalette: Boolean = false,
+    ) {
         FileOutputStream(out).use { fos ->
-            writeStream(fos, width, height, palette, loopForever, frames, dither)
+            writeStream(fos, width, height, palette, loopForever, frames, dither, perFramePalette)
         }
     }
 
-    fun writeStream(out: OutputStream, width: Int, height: Int, palette: IntArray, loopForever: Boolean, frames: Sequence<Frame>, dither: Boolean) {
+    fun writeStream(
+        out: OutputStream,
+        width: Int,
+        height: Int,
+        palette: IntArray,
+        loopForever: Boolean,
+        frames: Sequence<Frame>,
+        dither: Boolean,
+        perFramePalette: Boolean = false,
+    ) {
         out.write("GIF89a".toByteArray(Charsets.ISO_8859_1))
         writeLE16(out, width); writeLE16(out, height)
         out.write(0xF7) // 全局色表标志 + 256 项
@@ -84,7 +102,13 @@ object GifEncoder {
         }
         val cache = HashMap<Int, Int>()
         for (f in frames) {
-            writeFrame(out, f.bitmap, f.delayCs, palette, cache, dither)
+            if (perFramePalette) {
+                // 高清模式：每帧独立调色板 + 局部色表（cache 每帧清空）
+                cache.clear()
+                writeFrame(out, f.bitmap, f.delayCs, buildFramePalette(f.bitmap), cache, dither, localTable = true)
+            } else {
+                writeFrame(out, f.bitmap, f.delayCs, palette, cache, dither)
+            }
         }
         out.write(0x3B) // trailer
     }
@@ -98,7 +122,22 @@ object GifEncoder {
 
     // ---------- 帧写出 ----------
 
-    private fun writeFrame(out: OutputStream, bmp: Bitmap, delayCs: Int, palette: IntArray, cache: HashMap<Int, Int>, dither: Boolean) {
+    /** 单帧局部调色板（高清模式：每帧独立中位切分，色彩保真远优于全局调色板） */
+    fun buildFramePalette(bmp: Bitmap): IntArray {
+        val pb = PaletteBuilder()
+        pb.feed(bmp)
+        return pb.build()
+    }
+
+    private fun writeFrame(
+        out: OutputStream,
+        bmp: Bitmap,
+        delayCs: Int,
+        palette: IntArray,
+        cache: HashMap<Int, Int>,
+        dither: Boolean,
+        localTable: Boolean = false,
+    ) {
         val w = bmp.width
         val h = bmp.height
         val pixels = IntArray(w * h)
@@ -112,7 +151,14 @@ object GifEncoder {
         out.write(0x2C) // image descriptor
         writeLE16(out, 0); writeLE16(out, 0)
         writeLE16(out, w); writeLE16(out, h)
-        out.write(0x00) // 无局部色表、不交错
+        if (localTable) {
+            // 局部色表（256 项，packed bit7=1 + size=7）
+            out.write(0x87)
+            for (c in palette) { out.write(Color.red(c)); out.write(Color.green(c)); out.write(Color.blue(c)) }
+            repeat((256 - palette.size).coerceAtLeast(0) * 3) { out.write(0) }
+        } else {
+            out.write(0x00) // 无局部色表、不交错
+        }
         lzwAndWrite(indices, palette.size, out)
     }
 

@@ -40,6 +40,10 @@ object FileOpener {
 
             path != null && ArchiveScanner.isArchive(name) -> openArchive(activity, File(path))
 
+            path != null && name.endsWith(".apk", true) -> activity.startActivity(
+                Intent(activity, ApkInstallActivity::class.java).putExtra(ApkInstallActivity.EXTRA_PATH, path),
+            )
+
             name.endsWith(".pdf", true) && path != null -> activity.startActivity(
                 Intent(activity, PdfReaderActivity::class.java).putExtra(PdfReaderActivity.EXTRA_PATH, path),
             )

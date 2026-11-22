@@ -142,6 +142,18 @@
     <string name="reading_mode">阅读模式</string>
     <string name="edit_mode">编辑模式</string>
     <string name="reader_office_unsupported">Office 预览不支持阅读模式</string>
+    <string name="apk_install_title">安装应用</string>
+    <string name="apk_install_btn">安装</string>
+    <string name="apk_open_btn">打开</string>
+    <string name="apk_ver">版本 %1$s</string>
+    <string name="apk_ready">已解析安装包，点击安装</string>
+    <string name="apk_scanning">解析中… · %1$d KB</string>
+    <string name="apk_installing">正在安装…</string>
+    <string name="apk_done">安装完成</string>
+    <string name="apk_failed">安装失败</string>
+    <string name="apk_unknown">无法识别的安装包（可能已损坏）</string>
+    <string name="apk_need_perm">安装应用需要“安装未知应用”权限，去授权后返回即可继续</string>
+    <string name="apk_grant">去授权</string>
     <string name="gif_tool_title">GIF 转换</string>
     <string name="gif_tool_desc">视频/动图 → GIF 表情包</string>
     <string name="btn_pick_file">选择文件</string>
@@ -159,6 +171,7 @@
     <string name="office_failed">无法解析文档：%1$s</string>
     <string name="office_legacy_doc">旧版 .doc 为二进制格式，暂不支持内建预览。请用 Office/WPS 另存为 .docx 后即可在软件内查看。</string>
     <string name="office_unknown">暂不支持预览此格式</string>
+    <string name="gif_no_valid_frames">未找到有效画面（视频可能为黑屏或已损坏）</string>
     <string name="office_ole2_misnamed">该文件实际为旧版 Office 二进制格式（.doc/.xls/.ppt），只是扩展名叫 .docx/.xlsx/.pptx，暂不支持内建预览。请用 Office/WPS 打开后另存为新格式（docx/xlsx/pptx）即可在软件内查看。</string>
     <string name="office_corrupt">文件已损坏或为空（%1$d KB），无法解析</string>
     <string name="gif_pick_source">选择视频或图片</string>

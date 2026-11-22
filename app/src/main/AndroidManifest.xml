@@ -13,6 +13,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- 存储策略（用户决策）：直接申请所有文件访问 -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!-- 应用内安装 APK（PackageInstaller 会话式安装，不依赖外部应用） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- 安装结果轮询/获取已装应用启动意图需要包可见性（Android 11+ 过滤） -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
         android:name=".PolarApp"
@@ -76,6 +80,10 @@
 
         <activity
             android:name=".files.ImagePreviewActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".files.ApkInstallActivity"
             android:exported="false" />
 
         <activity

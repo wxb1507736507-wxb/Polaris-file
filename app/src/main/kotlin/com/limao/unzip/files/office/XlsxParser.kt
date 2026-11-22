@@ -216,7 +216,8 @@ object XlsxParser {
     private fun loadSharedStrings(zip: OfficeSource): List<String> {
         if (!zip.has("xl/sharedStrings.xml")) return emptyList()
         val list = ArrayList<String>()
-        val p = OfficeUtil.newParser(zip.stream("xl/styles.xml")!!)
+        // 读取 sharedStrings 本体（v0.9.41 修：此前误读 styles.xml，无 styles 的工作簿直接 NPE）
+        val p = OfficeUtil.newParser(zip.stream("xl/sharedStrings.xml")!!)
         val sb = StringBuilder()
         var inSi = false
         var inR = false

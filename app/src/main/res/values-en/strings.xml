@@ -142,6 +142,18 @@
     <string name="reading_mode">Reading mode</string>
     <string name="edit_mode">Edit mode</string>
     <string name="reader_office_unsupported">Reading mode not available for Office preview</string>
+    <string name="apk_install_title">Install app</string>
+    <string name="apk_install_btn">Install</string>
+    <string name="apk_open_btn">Open</string>
+    <string name="apk_ver">Version %1$s</string>
+    <string name="apk_ready">Package parsed. Tap install</string>
+    <string name="apk_scanning">Parsing… · %1$d KB</string>
+    <string name="apk_installing">Installing…</string>
+    <string name="apk_done">Installed</string>
+    <string name="apk_failed">Install failed</string>
+    <string name="apk_unknown">Unrecognized package (may be corrupted)</string>
+    <string name="apk_need_perm">Installing requires the "Install unknown apps" permission. Grant it and come back</string>
+    <string name="apk_grant">Grant</string>
     <string name="gif_tool_title">GIF Converter</string>
     <string name="gif_tool_desc">Video/animated image → GIF sticker</string>
     <string name="btn_pick_file">Pick file</string>
@@ -159,6 +171,7 @@
     <string name="office_failed">Failed to parse document: %1$s</string>
     <string name="office_legacy_doc">Legacy .doc is a binary format and cannot be previewed in-app. Save it as .docx with Office/WPS to view it here.</string>
     <string name="office_unknown">Preview not supported for this format</string>
+    <string name="gif_no_valid_frames">No valid frames found (video may be blank or corrupted)</string>
     <string name="office_ole2_misnamed">This file is actually legacy Office binary (.doc/.xls/.ppt) despite its extension. Save it as .docx/.xlsx/.pptx with Office/WPS to preview in-app.</string>
     <string name="office_corrupt">File is corrupt or empty (%1$d KB) and cannot be parsed</string>
     <string name="gif_pick_source">Pick a video or image</string>
