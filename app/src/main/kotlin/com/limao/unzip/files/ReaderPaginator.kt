@@ -63,6 +63,9 @@ class ReaderPaginator(
                 .setLineSpacing(lineSpacingAdd, lineSpacingMult)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                 .setIncludePad(false)
+                // 与 TextView 渲染一致：TextView 默认启用回退字体行距（CJK 文本行高更高），
+                // 测量若不开启会导致每页实际行数多于预算 → 末行被裁切
+                .setUseLineSpacingFromFallbacks(true)
                 .build()
             if (layout.height <= pageHeight) { best = mid; lo = mid + 1 } else hi = mid - 1
         }

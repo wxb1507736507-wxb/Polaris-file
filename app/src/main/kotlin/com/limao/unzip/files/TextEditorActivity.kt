@@ -149,6 +149,7 @@ class TextEditorActivity : AppCompatActivity() {
         contentRecycler = RecyclerView(this).apply {
             isVerticalScrollBarEnabled = false
             overScrollMode = View.OVER_SCROLL_NEVER
+            clipToPadding = true
         }
         readingRoot.addView(contentRecycler, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 
@@ -221,7 +222,7 @@ class TextEditorActivity : AppCompatActivity() {
         iconRow.addView(autoIcon)
         iconRow.addView(icon("🌙 夜间") { toggleNightBg() })
         iconRow.addView(icon("⚙ 设置") { toggleSettings() })
-        iconRow.addView(icon("📖 " + getString(R.string.edit_mode)) { exitReadingMode() })
+        iconRow.addView(icon("📖 编辑") { exitReadingMode() })
         controlBar!!.addView(iconRow)
 
         readingRoot.addView(topBar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
@@ -320,6 +321,18 @@ class TextEditorActivity : AppCompatActivity() {
         topBar?.visibility = if (controlsVisible) View.VISIBLE else View.GONE
         controlBar?.visibility = if (controlsVisible) View.VISIBLE else View.GONE
         if (!controlsVisible) settingsPanel?.visibility = View.GONE
+        // 控制栏显示时正文夹在两栏之间（不遮挡），隐藏时全屏沉浸；分页随之重排
+        applyChromeInsets()
+        scheduleRelayout()
+    }
+
+    /** 顶栏/控制栏高度转成 RecyclerView 内边距：控制栏可见=内容夹在栏间，隐藏=全屏 */
+    private fun applyChromeInsets() {
+        val rv = contentRecycler ?: return
+        val topH = if (controlsVisible) (topBar?.height ?: 0) else 0
+        val botH = if (controlsVisible) (controlBar?.height ?: 0) else 0
+        rv.setPadding(rv.paddingLeft, topH, rv.paddingRight, botH)
+        rv.clipToPadding = true // 内容滚动/翻页范围严格限制在两栏之间
     }
 
     private fun handleTap(x: Float) {
@@ -342,8 +355,10 @@ class TextEditorActivity : AppCompatActivity() {
 
     private fun measurePageBoxAndPaginate(restore: Boolean) {
         val rv = contentRecycler ?: return
+        applyChromeInsets() // 栏已布局：先按控制栏可见性调整内边距再分页
         pageBoxW = maxOf(1, rv.width - dp(52))
-        pageBoxH = maxOf(1, rv.height - dp(68))
+        // 可见正文预算 = 可视区（扣除栏内边距）- 页面上下留白 dp(68)
+        pageBoxH = maxOf(1, rv.height - rv.paddingTop - rv.paddingBottom - dp(68))
         readerPaint.textSize = rFontSize * resources.displayMetrics.scaledDensity
         readerPaint.typeface = TYPEFACES[rTypefaceIdx]
         paginateCurrent(if (restore) lastReadOffset else -1)
@@ -407,6 +422,12 @@ class TextEditorActivity : AppCompatActivity() {
                     setLineSpacing(dp(3).toFloat(), LINE_MULTS[rLineIdx])
                     setPadding(dp(26), dp(34), dp(26), dp(34))
                     includeFontPadding = false
+                    // 显式宽度：横向LayoutManager 的滚动轴不约束子项宽度，
+                    // 默认 WRAP_CONTENT 会把整段排成一条远超屏幕的单行
+                    layoutParams = RecyclerView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    )
                 }
                 return PageHolder(tv)
             }
